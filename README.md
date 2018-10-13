@@ -8,36 +8,41 @@ USAGE
 =====
 
 Extract banks attached to source code:
-$ dumpamos source.amos
 
-Extract multi-banks to single banks:
-$ dumpamos multi.abs
+    $ dumpamos source.amos
 
-Extract sprites or icons as IFF ILBM images:
-$ dumpamos sprites.abk
+Extract sprites, pictures, samples from source or banks:
+    
+    $ dumpamos source.amos sprites.abk pic1.abk samps.abk
 
 Use input filenames as a prefix for the output filenames:
-$ dumpamos -p source.amos multi.abs sprites.abk
 
-List normal AMOS programs:
-$ listamos source.amos
+     $ dumpamos -p source.amos
+
+List AMOS programs:
+
+    $ listamos source.amos
 
 List AMOS programs that use 3rd-party extensions:
-$ listamos -e extensions/CRAFT.Lib-V1.00 \
-           -e extensions/MusiCRAFT.Lib-V1.00 \
-           source.amos
+
+    $ listamos -e extensions/CRAFT.Lib-V1.00 \
+               -e extensions/MusiCRAFT.Lib-V1.00 \
+               source.amos
 
 List AMOS programs that use extensions in non-standard slots:
-$ listamos -e23=extensions/Dump.Lib-V1.0 \
-           source.amos      # ...or with extensions in non-standard slots
+
+    $ listamos -e23=extensions/Dump.Lib-V1.0 \
+               source.amos      # ...or with extensions in non-standard slots
 
 List AMOS programs using the extensions configured in your own AMOS setup:
-$ listamos -c myamos/AMOS1_3_Pal.Env -d myamos/AMOS_System source.amos
-$ listamos -c myamos/AMOS1_3_Pal.Env -d myamos/AMOS_System source.amos
-$ listamos -c myamos/s/AMOSPro_Interpreter_Config -d myamos/APSystem source.amos
+
+    $ listamos -c myamos/AMOS1_3_Pal.Env -d myamos/AMOS_System source.amos
+    $ listamos -c myamos/AMOS1_3_Pal.Env -d myamos/AMOS_System source.amos
+    $ listamos -c myamos/s/AMOSPro_Interpreter_Config -d myamos/APSystem source.amos
 
 Unlock AMOS programs with locked procedures:
-$ unlockamos Fold.Acc *.AMOS
+
+    $ unlockamos Fold.Acc *.AMOS
 
 ABOUT EXTENSIONS
 ================
