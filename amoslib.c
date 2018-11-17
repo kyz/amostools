@@ -27,6 +27,17 @@ static void print_float(FILE *out, unsigned int value) {
     fprintf(out, ".0");
 }
 
+static int print_string(FILE *out, unsigned char *tk, char quote) {
+    int len = amos_deek(tk); tk += 2;
+    putc(quote, out);
+    for (int i = 0; i < len; i++) {
+        unsigned char c = *tk++;
+        if (c) putc((char) c, out); else break;
+    }
+    putc(quote, out);
+    return len + (len & 1 ? 3 : 2);
+}
+
 static char *lookup_token(int slot, int offset,
 			  struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE])
 {
@@ -149,14 +160,10 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 		    print_binary(out, amos_leek(line)); line += 4;
 		    break;
 		case 0x0026: /* TkCh1 */
-		    i = amos_deek(line); line += 2;
-		    fprintf(out, "\"%s\"", i ? (char *) line : "");
-		    line += i; if (i & 1) line++;
+		    line += print_string(out, line, '\"');
 		    break;
 		case 0x002E: /* TkCh2 */
-		    i = amos_deek(line); line += 2;
-		    fprintf(out, "'%s'", i ? (char *) line : "");
-		    line += i; if (i & 1) line++;
+		    line += print_string(out, line, '\'');
 		    break;
 		case 0x0036: /* TkHex */
 		    fprintf(out, "$%X", amos_leek(line)); line += 4;
