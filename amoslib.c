@@ -217,6 +217,11 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 		 *   - flags & 0x20 -- procedure is currently encrypted
 		 *   - flags & 0x10 -- procedure contains compiled code, not tokens
 		 * - 1 byte: part of seed for encryption
+		 *
+		 * Equ (0x2A40), Lvo (0x2A4A), Struc (0x2A54), Struct (0x2A64)
+		 * - 4 bytes: value of the equate
+		 * - 1 byte: type of the equate (0-7)
+		 * - 1 byte: unknown purpose
 		 */
 		if (token == 0x004E) {
 		    slot = line[0];
@@ -270,6 +275,13 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 			if (line[6] & 0x10) compiled_len = amos_leek(&line[0]);
 			line += 8;
 			break;
+
+                    case 0x2A40: /* Equ */
+                    case 0x2A4A: /* Lvo */
+                    case 0x2A54: /* Struc */
+                    case 0x2A64: /* Struct */
+                        line += 6;
+                        break;
 		    }
 		}
 	    }
