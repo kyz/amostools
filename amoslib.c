@@ -372,7 +372,7 @@ static int add_token(unsigned int key, unsigned char *name, char type,
 		     struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE],
 		     unsigned char **last_name)
 {
-    int len, upcase, done, append_space, prepend_space;
+    int len, upcase, done, append_space, prepend_space, no_caps;
     struct AMOS_token *e;
     unsigned char *s;
 
@@ -390,6 +390,9 @@ static int add_token(unsigned int key, unsigned char *name, char type,
 
     /* if type is I, append a space */
     append_space = (type == 'I');
+
+    /* if token begins with space, don't capitalise (first) word */
+    no_caps = (*name == ' ');
     
     /* measure length of name */
     len = 0;
@@ -412,7 +415,7 @@ static int add_token(unsigned int key, unsigned char *name, char type,
 	unsigned char c = *name++;
 	if (c & 0x80) done = 1, c &= 0x7F;
 	if (c >= 'a' && c <= 'z') {
-	    if (upcase) upcase = 0, c -= 'a'-'A';
+	    if (upcase && !no_caps) upcase = 0, c -= 'a'-'A';
 	}
 	else if (c == ' ') {
 	    upcase = 1; /* end of word */
