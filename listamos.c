@@ -171,7 +171,7 @@ void read_default_extensions() {
 	AMOS_parse_extension(ext03_request, sizeof(ext03_request), 3, 6, table);
     }
     if (!extensions_loaded[6]) {
-	AMOS_parse_extension(ext06_ioports, sizeof(ext06_ioports), 4, 6, table);
+	AMOS_parse_extension(ext06_ioports, sizeof(ext06_ioports), 6, 6, table);
     }
 }
 
