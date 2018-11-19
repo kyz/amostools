@@ -38,11 +38,11 @@ static void print_double(FILE *out, uint32_t vh, uint32_t vl) {
 
 }
 
-static int print_string(FILE *out, uint8_t *tk, char quote) {
-    int len = amos_deek(tk); tk += 2;
+static int print_string(FILE *out, uint8_t *s, char quote) {
+    int len = amos_deek(s); s += 2;
     putc(quote, out);
     for (int i = 0; i < len; i++) {
-        uint8_t c = *tk++;
+        uint8_t c = *s++;
         if (c) putc((char) c, out); else break;
     }
     putc(quote, out);
