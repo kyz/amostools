@@ -7,7 +7,10 @@ sub main {
     if (@ARGV) {
 	for my $ext (@ARGV) {
 	    print "$ext: slot ".slot($ext)."\n";
-	    map { printf "  %04X %s\n", @{$_} } table($ext);
+	    map { $_->[1] =~ s/[\x80-\xFF]/chr(ord($&)-0x80).">> <<"/e; 
+                  $_->[1] =~ s/[\xFD-\xFF]$//;
+                  $_->[1] =~ s/[\x00-\x1F\x80-\xFF]/sprintf '\x%02X', ord $&/eg;
+                  printf "  %04X <<%s>>\n", @{$_} } table($ext);
 	}
 	exit;
     }
