@@ -27,6 +27,10 @@ static void print_float(FILE *out, unsigned int value) {
     fprintf(out, ".0");
 }
 
+static void print_double(FILE *out, unsigned int vh, unsigned int vl) {
+    /* TODO */
+}
+
 static int print_string(FILE *out, unsigned char *tk, char quote) {
     int len = amos_deek(tk); tk += 2;
     putc(quote, out);
@@ -136,7 +140,7 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 		/* advance to the next token */
 		line += ((line[2] & 1) ? 5 : 4) + line[2];
 	    }
-	    else if (token < 0x004E) {
+	    else if (token < 0x004E || token == 0x2B6A) {
 		/* Tokens 0x0019 to 0x004D are "constant" tokens. These represent
 		 * literal numbers and strings:
 		 *
@@ -145,10 +149,14 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 		 * - 0x002E = TkCh2, a string with single quotes, e.g. 'hello'
 		 * - 0x0036 = TkHex, a hexidecimal integer, e.g. $80FAA010
 		 * - 0x003E = TkEnt, a decimal integer, e.g. 1234567890
-		 * - 0x0046 = TkFl,  a floating-point number, eg 3.142
+		 * - 0x0046 = TkFl,  a floating-point number, e.g 3.142
+		 * - 0x2B6A = TkDFl, a double-precision float, e.g. 3.1415926543
 		 *
 		 * TkBin, TkHex, TkEnt, TkFl have this format:
 		 * - 4 bytes: the value
+		 *
+		 * TkDFl has this format:
+		 * - 8 bytes: the value
 		 *
 		 * TkCh1 and TkCh2 have this format:
 		 * - 2 bytes: the length of the string
@@ -174,6 +182,9 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 		case 0x0046: /* TkFl */
 		    print_float(out, amos_leek(line)); line += 4;
 		    break;
+                case 0x2B6A:
+                    print_double(out, amos_leek(line), amos_leek(line+4)); line += 8;
+                    break;
 		default:
 		    fprintf(out, "ILLEGAL_CONST_%04X", token);
 		    err |= 2;
