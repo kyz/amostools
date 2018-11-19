@@ -379,7 +379,7 @@ static int add_token(unsigned int key, unsigned char *name, char type,
 		     struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE],
 		     unsigned char **last_name)
 {
-    int len, upcase, done, append_space, prepend_space, no_caps;
+    int len, append_space, prepend_space;
     struct AMOS_token *e;
     unsigned char *s;
 
@@ -398,9 +398,6 @@ static int add_token(unsigned int key, unsigned char *name, char type,
     /* if type is I, append a space */
     append_space = (type == 'I');
 
-    /* if token begins with space, don't capitalise (first) word */
-    no_caps = (*name == ' ');
-    
     /* measure length of name */
     len = 0;
     while (name[len] < 0x80) len++;
@@ -418,17 +415,17 @@ static int add_token(unsigned int key, unsigned char *name, char type,
     /* copy text, capitalise words */
     s = (unsigned char *) &e->text[0];
     if (prepend_space) *s++ = ' ';
-    for (upcase = 1, done = 0; !done;) {
-	unsigned char c = *name++;
-	if (c & 0x80) done = 1, c &= 0x7F;
-	if (c >= 'a' && c <= 'z') {
-	    if (upcase && !no_caps) upcase = 0, c -= 'a'-'A';
-	}
-	else if (c == ' ') {
-	    upcase = 1; /* end of word */
-	}
-	*s++ = (char) c;
+    for (;;) {
+        /* copy and capitalise first letter of word */
+	unsigned char c = *name++, c2 = c & 0x7F;
+        *s++ = (c2 >= 'a' && c2 <= 'z') ? c2 - ('a'-'A') : c2;
+        /* copy rest of word */
+        do {
+            if (c & 0x80) goto done; /* loop exit condition */
+        } while ((c = *s++ = *name++) != ' ');
     }
+ done:
+    s[-1] &= 0x7F; /* remove terminating high bit from name */
     if (append_space) *s++ = ' ';
     *s++ = '\0';
     /*printf("$%06x: %s\n", e->key, e->text);*/
