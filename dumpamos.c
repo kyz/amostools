@@ -4,20 +4,21 @@
 #include <strings.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <stdint.h>
 
-/* read 16-bit big-endian word from unsigned char[] */
+/* read 16-bit big-endian word from uint8_t[] */
 #define amos_deek(a) ((((a)[0])<<8)|((a)[1]))
 
-/* read 32-bit big-endian word from unsigned char[] */
+/* read 32-bit big-endian word from uint8_t[] */
 #define amos_leek(a) ((((a)[0])<<24)|(((a)[1])<<16)|(((a)[2])<<8)|((a)[3]))
 
-/* write 32-bit big-endian word into unsigned char[] */
+/* write 32-bit big-endian word into uint8_t[] */
 #define amos_doke(a, v) do { \
     (a)[0] = ((v) >> 8) & 0xFF; \
     (a)[1] = (v) & 0xFF; \
 } while (0)
 
-/* write 32-bit big-endian word into unsigned char[] */
+/* write 32-bit big-endian word into uint8_t[] */
 #define amos_loke(a, v) do { \
     (a)[0] = ((v) >> 24) & 0xFF; \
     (a)[1] = ((v) >> 16) & 0xFF; \
@@ -32,7 +33,7 @@
 #define ID_AmIc (0x416D4963)
 
 #define IFF_ILBM_HEADER_LEN (0xb0)
-static const unsigned char iff_ilbm_header[IFF_ILBM_HEADER_LEN] = {
+static const uint8_t iff_ilbm_header[IFF_ILBM_HEADER_LEN] = {
   'F', 'O', 'R', 'M',    /* 00 FORM                        */
    0,   0,   0,   0,     /* 04   form length               */
   'I', 'L', 'B', 'M',    /* 08   ILBM                      */
@@ -67,7 +68,7 @@ static const unsigned char iff_ilbm_header[IFF_ILBM_HEADER_LEN] = {
 };
 
 #define IFF_8SVX_HEADER_LEN (0x30)
-static const unsigned char iff_8svx_header[IFF_8SVX_HEADER_LEN] = {
+static const uint8_t iff_8svx_header[IFF_8SVX_HEADER_LEN] = {
   'F', 'O', 'R', 'M',    /* 00 FORM                        */
    0,   0,   0,   0,     /* 04   form length               */
   '8', 'S', 'V', 'X',    /* 08   8SVX                      */
@@ -118,10 +119,10 @@ char *output_fname(char *fname, char *fmt, ...) {
     return name;
 }
 
-unsigned int bank_length(unsigned char *src, size_t len) {
+uint32_t bank_length(uint8_t *src, size_t len) {
     if (len >= 6 && (amos_leek(src) == ID_AmSp || amos_leek(src) == ID_AmIc)) {
 	int num_sprites = amos_deek(&src[4]);
-	unsigned int pos = 6, w, h, d;
+	uint32_t pos = 6, w, h, d;
 	while (num_sprites--) {
 	    if (pos + 10 > len) return 0;
  	    w = amos_deek(&src[pos+0]) * 2;
@@ -133,13 +134,13 @@ unsigned int bank_length(unsigned char *src, size_t len) {
 	return pos > len ? 0 : pos;
     }
     else if (len >= 20 && amos_leek(src) == ID_AmBk) {
-	unsigned int bank_len = (amos_leek(&src[8]) & 0x0FFFFFFF) + 20 - 8;
+	uint32_t bank_len = (amos_leek(&src[8]) & 0x0FFFFFFF) + 20 - 8;
         return bank_len > len ? 0 : bank_len;
     }
     return 0;
 }
 
-unsigned int bank_number(unsigned char *src, size_t len) {
+uint32_t bank_number(uint8_t *src, size_t len) {
     if (len >= 6 && amos_leek(src) == ID_AmSp) {
 	return 1; /* Sprites always bank 1 */
     }
@@ -152,7 +153,7 @@ unsigned int bank_number(unsigned char *src, size_t len) {
     return 0;
 }
 
-char *bank_type(unsigned char *src, size_t len) {
+char *bank_type(uint8_t *src, size_t len) {
     if (len >= 6 && amos_leek(src) == ID_AmSp) {
 	return "Sprites";
     }
@@ -171,14 +172,14 @@ char *bank_type(unsigned char *src, size_t len) {
 }
 
 /* https://www.exotica.org.uk/wiki/AMOS_file_formats#AMOS_Sprite_and_Icon_bank_formats */
-void decode_sprites(char *fname, unsigned char *src, size_t len, char *prefix) {
-    unsigned int num_sprites = amos_deek(&src[4]);
-    unsigned char *sp = &src[6], *pal = &src[len - 64];
+void decode_sprites(char *fname, uint8_t *src, size_t len, char *prefix) {
+    uint32_t num_sprites = amos_deek(&src[4]);
+    uint8_t *sp = &src[6], *pal = &src[len - 64];
 
     /* create an IFF ILBM file for each sprite/icon */
-    for (unsigned int i = 0; i < num_sprites; i++) {
-	unsigned int w, h, d, sp_len, ilbm_len, line, plane;
-	unsigned char *ilbm, *body;
+    for (uint32_t i = 0; i < num_sprites; i++) {
+	uint32_t w, h, d, sp_len, ilbm_len, line, plane;
+	uint8_t *ilbm, *body;
 
 	w = amos_deek(&sp[0]) * 2;
 	h = amos_deek(&sp[2]);
@@ -201,7 +202,7 @@ void decode_sprites(char *fname, unsigned char *src, size_t len, char *prefix) {
 
 	    /* convert palette from 0x0RGB to 0xRR 0xGG 0xBB */
 	    for (int j = 0; j < 32; j++) {
-		unsigned int c = amos_deek(&pal[j * 2]);
+		uint32_t c = amos_deek(&pal[j * 2]);
 		ilbm[0x48 + (j * 3) + 0] = ((c >> 8) & 0xF) * 0x11;
 		ilbm[0x48 + (j * 3) + 1] = ((c >> 4) & 0xF) * 0x11;
 		ilbm[0x48 + (j * 3) + 2] = ((c     ) & 0xF) * 0x11;
@@ -235,10 +236,10 @@ void decode_sprites(char *fname, unsigned char *src, size_t len, char *prefix) {
 }
 
 /* https://www.exotica.org.uk/wiki/AMOS_Pac.Pic._format */
-void decode_pacpic(char *fname, unsigned char *src, size_t len) {
-    unsigned char *end = &src[len], *s, *pal, *picdata, *rledata,
+void decode_pacpic(char *fname, uint8_t *src, size_t len) {
+    uint8_t *end = &src[len], *s, *pal, *picdata, *rledata,
 	*points, *ilbm;
-    unsigned int i, j, k, l, bplcon0, width, ilbm_width, lumps,
+    uint32_t i, j, k, l, bplcon0, width, ilbm_width, lumps,
 	lump_height, ilbm_height, bitplanes, ilbm_len, ilbm_line,
 	rledata_offset, points_offset;
 
@@ -283,7 +284,7 @@ void decode_pacpic(char *fname, unsigned char *src, size_t len) {
 
     ilbm_len = IFF_ILBM_HEADER_LEN + ilbm_line * ilbm_height;
     if ((ilbm = malloc(ilbm_len))) {
-	unsigned char *plane, rbit, rrbit, picbyte, rlebyte;
+	uint8_t *plane, rbit, rrbit, picbyte, rlebyte;
 	char *outname;
 
 	memcpy(ilbm, iff_ilbm_header, IFF_ILBM_HEADER_LEN);
@@ -298,7 +299,7 @@ void decode_pacpic(char *fname, unsigned char *src, size_t len) {
 	amos_loke(&ilbm[0xAC], ilbm_len - IFF_ILBM_HEADER_LEN); /* body length */
 	/* convert palette from 0x0RGB to 0xRR 0xGG 0xBB */
 	for (int i = 0; i < 32; i++) {
-	    unsigned int c = pal ? amos_deek(&pal[i*2]) : (i & 0x0F) * 0x111;
+	    uint32_t c = pal ? amos_deek(&pal[i*2]) : (i & 0x0F) * 0x111;
 	    ilbm[0x48 + (i * 3) + 0] = ((c >> 8) & 0xF) * 0x11;
 	    ilbm[0x48 + (i * 3) + 1] = ((c >> 4) & 0xF) * 0x11;
 	    ilbm[0x48 + (i * 3) + 2] = ((c     ) & 0xF) * 0x11;
@@ -315,11 +316,11 @@ void decode_pacpic(char *fname, unsigned char *src, size_t len) {
 	if (*points & 0x80) rlebyte = *rledata++;
 	plane = &ilbm[IFF_ILBM_HEADER_LEN];
 	for (i = 0; i < bitplanes; i++) {
-	    unsigned char *lump_start = plane;
+	    uint8_t *lump_start = plane;
 	    for (j = 0; j < lumps; j++) {
-		unsigned char *lump_offset = lump_start;
+		uint8_t *lump_offset = lump_start;
 		for (k = 0; k < width; k++) {
-		    unsigned char *d = lump_offset;
+		    uint8_t *d = lump_offset;
 		    for (l = 0; l < lump_height; l++) {
 			/* if the current RLE bit is set to 1, read in a new picture byte */
 			if (rlebyte & (1 << rbit--)) {
@@ -368,19 +369,19 @@ void decode_pacpic(char *fname, unsigned char *src, size_t len) {
 }
 
 /* https://www.exotica.org.uk/wiki/AMOS_Samples_Bank_format */
-void decode_samples(char *fname, unsigned char *src, size_t len) {
-    unsigned int num_samples;
+void decode_samples(char *fname, uint8_t *src, size_t len) {
+    uint32_t num_samples;
 
     if (len < 22) return;
     num_samples = amos_deek(&src[20]);
     if (len < 22 + (num_samples * 4)) return;
     
     /* create an IFF 8SVX file for each sample */
-    for (unsigned int i = 0; i < num_samples; i++) {
-	unsigned char *svx;
-	unsigned int offset = amos_leek(&src[22 + i*4]) + 22;
-	unsigned int freq, sam_len, svx_len;
-	unsigned char name[7];
+    for (uint32_t i = 0; i < num_samples; i++) {
+	uint8_t *svx;
+	uint32_t offset = amos_leek(&src[22 + i*4]) + 22;
+	uint32_t freq, sam_len, svx_len;
+	uint8_t name[7];
 	
 	if (offset > len) return;
 
@@ -422,8 +423,8 @@ void decode_samples(char *fname, unsigned char *src, size_t len) {
     
 }
 
-void decode_tracker(char *fname, unsigned char *src, size_t len) {
-    unsigned int mod_len = len - 20;
+void decode_tracker(char *fname, uint8_t *src, size_t len) {
+    uint32_t mod_len = len - 20;
     char *outname = output_fname(fname, "tracker%02X.mod", bank_number(src, len));
     if (outname) {
 	printf("%s: extracting tracker mod %s (%d bytes)\n", fname, outname, mod_len);
@@ -435,7 +436,7 @@ void decode_tracker(char *fname, unsigned char *src, size_t len) {
     }
 }
 
-void amos_bank(char *fname, unsigned char *src, size_t len) {
+void amos_bank(char *fname, uint8_t *src, size_t len) {
     /* get the "real", validated bank length */
     if (!(len = bank_length(src, len))) return;
     
@@ -458,15 +459,15 @@ void amos_bank(char *fname, unsigned char *src, size_t len) {
     }
 }
 
-void amos_banks(char *fname, unsigned char *src, size_t len) {
+void amos_banks(char *fname, uint8_t *src, size_t len) {
     if (len < 6) {
 	fprintf(stderr, "%s: file too short to be AMOS banks\n", fname);
     }
     else {
-	unsigned int num_banks = amos_deek(&src[4]), bank_pos = 6;
+	uint32_t num_banks = amos_deek(&src[4]), bank_pos = 6;
 	while (num_banks--) {
-	    unsigned int bank_len = bank_length(&src[bank_pos], len - bank_pos);
-	    unsigned int bank_num = bank_number(&src[bank_pos], bank_len);
+	    uint32_t bank_len = bank_length(&src[bank_pos], len - bank_pos);
+	    uint32_t bank_num = bank_number(&src[bank_pos], bank_len);
 	    char *type = bank_type(&src[bank_pos], bank_len), *outname;
 	    if (bank_num > 0) {
 		if ((outname = output_fname(fname, "bank%02X.abk", bank_num))) {
@@ -485,12 +486,12 @@ void amos_banks(char *fname, unsigned char *src, size_t len) {
     }
 }
 
-void amos_source(char *fname, unsigned char *src, size_t len) {
+void amos_source(char *fname, uint8_t *src, size_t len) {
     if (len < 30) {
 	fprintf(stderr, "%s: file too short to be AMOS source code\n", fname);
     }
     else {
-	unsigned int src_len = amos_leek(&src[16]) + 20;
+	uint32_t src_len = amos_leek(&src[16]) + 20;
 	char hdr[17] = {0};
 	memcpy(hdr, src, 16);
 	printf("%s: AMOS source code with header '%s'\n", fname, hdr);
@@ -502,7 +503,7 @@ void amos_source(char *fname, unsigned char *src, size_t len) {
     }
 }
 
-void amos_file(char *fname, unsigned char *src, size_t len) {
+void amos_file(char *fname, uint8_t *src, size_t len) {
     if (len < 4) {
 	fprintf(stderr, "%s: file too short to be an AMOS file\n", fname);
     }
@@ -542,7 +543,7 @@ int main(int argc, char *argv[]) {
 	}
 	else {
 	    char *fname = argv[i];
-	    unsigned char *buf;
+	    uint8_t *buf;
 	    size_t len;
 	    if ((buf = read_file(fname, &len))) {
 		amos_file(fname, buf, len);

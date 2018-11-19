@@ -3,6 +3,7 @@
 #include <dirent.h>
 #include <string.h>
 #include <strings.h>
+#include <stdint.h>
 #include "fileio.c"
 #include "amoslib.c"
 
@@ -10,7 +11,7 @@ struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE] = { NULL };
 char extensions_loaded[AMOS_EXTENSION_SLOTS + 1] = { 0 };
 
 void read_extension_file(char *filename, int slot) {
-    unsigned char *buf;
+    uint8_t *buf;
     size_t len;
 
     if ((buf = read_file(filename, &len))) {
@@ -71,7 +72,7 @@ char *default_extensions[NUM_DEFAULT_EXTENSIONS] = {
 void read_config_extensions(int argc, char *argv[]) {
     char *dir = ".", *config = NULL, *fullname = NULL, *fp;
     char *slots[AMOS_EXTENSION_SLOTS];
-    unsigned char *buf = NULL;
+    uint8_t *buf = NULL;
     size_t len;
     int i, j;
 
@@ -177,7 +178,7 @@ void read_default_extensions() {
 
 
 int main(int argc, char *argv[]) {
-    unsigned char *buf;
+    uint8_t *buf;
     size_t len;
     int i;
 
@@ -199,7 +200,7 @@ int main(int argc, char *argv[]) {
     for (; i < argc; i++) {
 	if ((buf = read_file(argv[i], &len))) {
 	    if (len >= 34 && amos_leek(buf) == 0x414D4F53) {
-		unsigned int srclen = amos_leek(&buf[16]);
+		uint32_t srclen = amos_leek(&buf[16]);
 		if (srclen > (len - 20)) srclen = len - 20;
 		int err = AMOS_print_source(&buf[20], srclen, stdout, table);
 		if (err & 4) {

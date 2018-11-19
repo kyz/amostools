@@ -1,15 +1,16 @@
 /* unlockamos: unlocks AMOS source files with "locked" procedures */
 #include "fileio.c"
 #include <string.h>
+#include <stdint.h>
 
-/* read 16-bit big-endian word from unsigned char[] */
+/* read 16-bit big-endian word from uint8_t[] */
 #define amos_deek(a) ((((a)[0])<<8)|((a)[1]))
-/* read 32-bit big-endian word from unsigned char[] */
+/* read 32-bit big-endian word from uint8_t[] */
 #define amos_leek(a) ((((a)[0])<<24)|(((a)[1])<<16)|(((a)[2])<<8)|((a)[3]))
 
-void AMOS_decrypt_procedure(unsigned char *src) {
-    unsigned char *line, *next, *endline;
-    unsigned int key, key2, key3, size;
+void AMOS_decrypt_procedure(uint8_t *src) {
+    uint8_t *line, *next, *endline;
+    uint32_t key, key2, key3, size;
 
     /* do not operate on compiled procedures */
     if (src[10] & 0x10) return;
@@ -37,9 +38,9 @@ void AMOS_decrypt_procedure(unsigned char *src) {
     src[10] ^= 0x20; /* toggle "is encrypted" bit */
 }
 
-int unlock_source(unsigned char *src, size_t len) {
+int unlock_source(uint8_t *src, size_t len) {
     int locked_procs_found = 0;
-    unsigned int x;
+    uint32_t x;
 
     /* go through the lines of source code */
     len = amos_leek(&src[16]);
@@ -74,7 +75,7 @@ int unlock_source(unsigned char *src, size_t len) {
 
 int main(int argc, char *argv[]) {
     char *fname;
-    unsigned char *buf;
+    uint8_t *buf;
     size_t len;
 
     if (argc <= 1) {

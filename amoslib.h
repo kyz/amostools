@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #define amos_deek(a) ((((a)[0])<<8)|((a)[1]))
 #define amos_leek(a) ((((a)[0])<<24)|(((a)[1])<<16)|(((a)[2])<<8)|((a)[3]))
@@ -16,18 +17,18 @@ struct AMOS_token {
   char text[1];
 };
 
-int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
+int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
 		      struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE]);
 
-void AMOS_decrypt_procedure(unsigned char *src);
+void AMOS_decrypt_procedure(uint8_t *src);
 
-int AMOS_parse_config(unsigned char *src, size_t len,
+int AMOS_parse_config(uint8_t *src, size_t len,
 		      char *slots[AMOS_EXTENSION_SLOTS]);
 
-int AMOS_parse_extension(unsigned char *src, size_t len, int slot, int start,
+int AMOS_parse_extension(uint8_t *src, size_t len, int slot, int start,
 			 struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE]);
 
-int AMOS_find_slot(unsigned char *src, size_t len);
+int AMOS_find_slot(uint8_t *src, size_t len);
 
 void AMOS_free_tokens(struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE]);
 

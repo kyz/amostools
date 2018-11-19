@@ -1,15 +1,15 @@
 #include "amoslib.h"
 
-static void print_binary(FILE *out, unsigned int value) {
+static void print_binary(FILE *out, uint32_t value) {
     char buf[33], *p = &buf[33];
     *--p = '\0';
     do {*--p = value & 1 ? '1' : '0'; value >>= 1; } while (value);
     fprintf(out, "%%%s", p);
 }
 
-typedef union { unsigned int i; float f; } flint;
+typedef union { uint32_t i; float f; } flint;
 
-static void print_float(FILE *out, unsigned int value) {
+static void print_float(FILE *out, uint32_t value) {
     char buf[30], *p;
     flint f = {.i = 0};
     /* convert AMOS float to IEEE 754 float */
@@ -26,15 +26,15 @@ static void print_float(FILE *out, unsigned int value) {
     fprintf(out, ".0");
 }
 
-static void print_double(FILE *out, unsigned int vh, unsigned int vl) {
+static void print_double(FILE *out, uint32_t vh, uint32_t vl) {
     /* TODO */
 }
 
-static int print_string(FILE *out, unsigned char *tk, char quote) {
+static int print_string(FILE *out, uint8_t *tk, char quote) {
     int len = amos_deek(tk); tk += 2;
     putc(quote, out);
     for (int i = 0; i < len; i++) {
-        unsigned char c = *tk++;
+        uint8_t c = *tk++;
         if (c) putc((char) c, out); else break;
     }
     putc(quote, out);
@@ -52,11 +52,11 @@ static char *lookup_token(int slot, int offset,
     return NULL;
 }
 
-int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
+int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
 		      struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE])
 {
-    unsigned int slot, token, linelen=0, inpos, i, compiled_len = 0;
-    unsigned char *line, *endline, add_space, start_of_line, label_at_eol;
+    uint32_t slot, token, linelen=0, inpos, i, compiled_len = 0;
+    uint8_t *line, *endline, add_space, start_of_line, label_at_eol;
     int err = 0;
 
     /* while we have remaining input bytes */
@@ -122,7 +122,7 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 		 */
                 if (add_space) putc(' ', out);
 		for (i = 0; i < line[2]; i++) {
-		    unsigned char c = line[4+i];
+		    uint8_t c = line[4+i];
 		    if (!c) break;
 		    if (c >= 'a' && c <= 'z') c -= ('a'-'A'); /* to uppercase */
 		    putc(c, out);
@@ -318,9 +318,9 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
     return err;
 }
 
-void AMOS_decrypt_procedure(unsigned char *src) {
-    unsigned char *line, *next, *endline;
-    unsigned int key, key2, key3, size;
+void AMOS_decrypt_procedure(uint8_t *src) {
+    uint8_t *line, *next, *endline;
+    uint32_t key, key2, key3, size;
 
     /* do not operate on compiled procedures */
     if (src[10] & 0x10) return;
@@ -350,14 +350,14 @@ void AMOS_decrypt_procedure(unsigned char *src) {
 
 
 /* parse extension names out of an AMOS 1.3/Pro interpreter config file */
-int AMOS_parse_config(unsigned char *src, size_t len,
+int AMOS_parse_config(uint8_t *src, size_t len,
 		      char *slots[AMOS_EXTENSION_SLOTS])
 {
     /* AMOSPro_Interpreter_Config format: PId1 / PIt1 */
     if (len > 100 && amos_leek(src) == 0x50496431) {
-        unsigned int idlen = amos_leek(&src[4]);
+        uint32_t idlen = amos_leek(&src[4]);
         if (idlen < (len - 92) && amos_leek(&src[idlen + 8]) == 0x50497431) {
-            unsigned char *p = &src[idlen + 16];
+            uint8_t *p = &src[idlen + 16];
             int i;
             /* config strings 16-41 are extensions 1-25 */
             for (i = 1; i < (16+AMOS_EXTENSION_SLOTS); i++) {
@@ -371,13 +371,13 @@ int AMOS_parse_config(unsigned char *src, size_t len,
 
     /* AMOS1_3_Pal.env, etc. format: Amiga code hunk */
     if (len > 300 && amos_leek(src) == 0x3f3 && amos_leek(&src[24]) == 0x3e9) {
-	unsigned int dta = amos_leek(&src[32]);
+	uint32_t dta = amos_leek(&src[32]);
         /* look up config entry 66 */
-        unsigned int offset = amos_deek(&src[36 + 65 * 4]) + 36 - dta;
-	unsigned int flags  = amos_deek(&src[36 + 65 * 4 + 2]);
+        uint32_t offset = amos_deek(&src[36 + 65 * 4]) + 36 - dta;
+	uint32_t flags  = amos_deek(&src[36 + 65 * 4 + 2]);
 	/* entry must be list of strings */
         if (flags & 0x8000 && offset < len) {
-	    unsigned char *s = &src[offset], *end = &src[len];
+	    uint8_t *s = &src[offset], *end = &src[len];
 	    int i;
 	    for (i = 0; i < AMOS_EXTENSION_SLOTS; i++) {
 		if (s >= end) return 1;
@@ -395,13 +395,13 @@ int AMOS_parse_config(unsigned char *src, size_t len,
     return 1; /* failure */
 }
 
-static int add_token(unsigned int key, unsigned char *name, char type,
+static int add_token(uint32_t key, uint8_t *name, char type,
 		     struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE],
-		     unsigned char **last_name)
+		     uint8_t **last_name)
 {
     int len;
     struct AMOS_token *e;
-    unsigned char *s;
+    uint8_t *s;
 
     /* if name begins with '!', it can be recalled with blank name */
     if (*name == 0x80) {
@@ -423,10 +423,10 @@ static int add_token(unsigned int key, unsigned char *name, char type,
     e->text[0] = type;
 
     /* copy text, capitalise words */
-    s = (unsigned char *) &e->text[1];
+    s = (uint8_t *) &e->text[1];
     for (;;) {
         /* copy and capitalise first letter of word */
-	unsigned char c = *name++, c2 = c & 0x7F;
+	uint8_t c = *name++, c2 = c & 0x7F;
         *s++ = (c2 >= 'a' && c2 <= 'z') ? c2 - ('a'-'A') : c2;
         /* copy rest of word */
         do {
@@ -448,11 +448,11 @@ static int add_token(unsigned int key, unsigned char *name, char type,
     return 0; /* success */
 }
 
-int AMOS_parse_extension(unsigned char *src, size_t len, int slot, int start,
+int AMOS_parse_extension(uint8_t *src, size_t len, int slot, int start,
 			 struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE])
 {
-    unsigned char *p, *end = &src[len], *pname, *ptype, *last_name = NULL;
-    unsigned int tkoff;
+    uint8_t *p, *end = &src[len], *pname, *ptype, *last_name = NULL;
+    uint32_t tkoff;
 
     /* Extension format is an Amiga hunk file with a single code hunk */
     if (len < 54 || amos_leek(src) != 0x3f3 || amos_leek(&src[24]) != 0x3e9) {
@@ -475,7 +475,7 @@ int AMOS_parse_extension(unsigned char *src, size_t len, int slot, int start,
      */
     for (p = &src[tkoff + start]; (p+2) < end;) {
 	/* unique key is slot and 16-bit offset within table */
-	unsigned int key = (slot << 16) | (((p - src) - tkoff) & 0xFFFF);
+	uint32_t key = (slot << 16) | (((p - src) - tkoff) & 0xFFFF);
 	if (!amos_deek(p)) return 0; /* success: reached end of list */
 	p += 4;
 	pname = p; while (p < end && *p < 0x80) p++; p++;
@@ -494,9 +494,9 @@ int AMOS_parse_extension(unsigned char *src, size_t len, int slot, int start,
  * AMOSPro_TURBO_Plus.Lib V2.15 (complex startup code)
  * Intuition.Lib / AMOSPro_Intuition.Lib V1.3a (complex startup code)
  */
-int AMOS_find_slot(unsigned char *src, size_t len) {
-    unsigned char *p, *end;
-    unsigned int tkoff, codeoff, titleoff;
+int AMOS_find_slot(uint8_t *src, size_t len) {
+    uint8_t *p, *end;
+    uint32_t tkoff, codeoff, titleoff;
     int b = -1, w = -1, l = -1;
 
     if (len < 50) return -1;
@@ -512,7 +512,7 @@ int AMOS_find_slot(unsigned char *src, size_t len) {
     if (codeoff > len || titleoff > len) return -1;
     
     for (p = &src[codeoff], end = &src[titleoff]; p+2 < end; p += 2) {
-	unsigned int c = amos_deek(p);
+	uint32_t c = amos_deek(p);
 	if (c == 0x4E75) { /* stop at first RTS */
 	    break;
 	}
