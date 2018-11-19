@@ -1,40 +1,36 @@
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 
 /* reads a binary file into memory */
 void *read_file(char *name, size_t *length) {
     void *mem = NULL;
-    long len = 0;
-    FILE *fh;
+    FILE *fh = NULL;
+    struct stat s;
+    size_t len;
 
-    if ((fh = fopen(name, "rb"))) {
-        if (!fseek(fh, 0, SEEK_END) && (len = ftell(fh)) > 0 && len < 1<<30 &&
-            !fseek(fh, 0, SEEK_SET) && (mem = malloc(len)))
-        {
-            if (fread(mem, 1, len, fh) == (size_t) len) {
+    if (!stat(name, &s)) {
+        if (S_ISDIR(s.st_mode)) {
+            errno = EISDIR;
+        }
+        else {
+            len = (size_t) s.st_size;
+            if ((mem = malloc(len)) &&
+                (fh = fopen(name, "rb")) &&
+                fread(mem, 1, len, fh) == len)
+            {
                 if (length) *length = len;
-            }
-            else {
-                free(mem);
-                mem = NULL;
+                fclose(fh);
+                return mem;
             }
         }
-        fclose(fh);
     }
-    if (!mem) {
-	if (!len) {
-	    fprintf(stderr, "%s: empty file\n", name);
-	}
-	else if (len > 1<<30) {
-	    /* linux: fopen() succeeds, fseek() succeeds, ftell() succeeds and
-	     * returns the largest positive integer because name is a directory */
-	    fprintf(stderr, "%s: is a directory\n", name);
-	}
-	else {
-	    perror(name);
-	}
-    }
-    return mem;
+
+    if (mem) free(mem);
+    if (fh) fclose(fh);
+    perror(name);
+    return NULL;
 }
 
 /* writes binary data to disk */
