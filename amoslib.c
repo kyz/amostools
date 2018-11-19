@@ -57,7 +57,7 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 		      struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE])
 {
     unsigned int slot, token, linelen=0, inpos, i, compiled_len = 0;
-    unsigned char *line, *endline, space_just_printed;
+    unsigned char *line, *endline, add_space, start_of_line, label_at_eol;
     int err = 0;
 
     /* while we have remaining input bytes */
@@ -93,14 +93,16 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 	if ((i = line[1]) > 1) {
 	    while (i-- > 1) putc(' ', out);
 	}
-	space_just_printed = 1;
+	add_space = 0;
 
 	/* decode this line */
 	endline = &line[linelen];
 	line += 2;
+        start_of_line = 1;
 
 	while ((line < endline) && (token = amos_deek(line))) {
 	    line += 2;
+            label_at_eol = 0;
 
 	    if (token <= 0x0018) {
 		/* Tokens 0x0000 to 0x0018 are "variable" tokens. These represent
@@ -119,6 +121,7 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 		 * - n bytes: ASCII string, with the above-given string length,
 		 *            rounded to a multiple of two, null terminated.
 		 */
+                if (add_space) putc(' ', out);
 		for (i = 0; i < line[2]; i++) {
 		    unsigned char c = line[4+i];
 		    if (!c) break;
@@ -128,14 +131,13 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 		if (token == 0x000C) {
 		    /* if not a "line number" label, the label needs a colon */
 		    if (!(line[4] >= '0' && line[4] <= '9')) putc(':', out);
+                    add_space = 1;
+                    label_at_eol = 1;
 		}
 		else {
 		    if (line[3] & 0x01) putc('#', out);
 		    else if (line[3] & 0x02) putc('$', out);
-		    if (token == 0x0012) {
-			putc(' ', out);
-			space_just_printed = 1;
-		    }
+                    add_space = 0;
 		}
 		/* advance to the next token */
 		line += ((line[2] & 1) ? 5 : 4) + line[2];
@@ -163,6 +165,7 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 		 * - n bytes: the string, for the above number of bytes rounded up
 		 *            to a multiple of two bytes and padded with nulls.
 		 */
+                if (add_space) putc(' ', out); add_space = 0;
 		switch (token) {
 		case 0x001E: /* TkBin */
 		    print_binary(out, amos_leek(line)); line += 4;
@@ -251,16 +254,21 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 		}
 
 		if ((tok = lookup_token(slot, token, table))) {
-		    /* avoid double-printing spaces */
-		    if (*tok == ' ' && space_just_printed) tok++;
-		    fprintf(out, "%s", tok);
-		    while (*tok) space_just_printed = (*tok++ == ' ');
+                    char type = *tok++;
+                    char is_paren = (slot == 0 && token == 0x0074);
+                    char is_func = (type == 'O' || type == '0' || type == '1' ||
+                                    type == '2' || type == 'V');
+                    if (!is_func && !start_of_line) add_space = 1;
+                    if (!is_paren && add_space && *tok != ' ') putc(' ', out);
+                    fprintf(out, "%s", tok);
+                    add_space = (type == 'I');
 		}
 		else {
 		    /* unknown token */
-		    fprintf(out, "EXTENSION_%02X_%04X", slot, token);
+		    fprintf(out, " EXTENSION_%c_%04X ", 'A' + slot, token);
 		    err |= 4;
 		}
+
 
 		/* special tokens in the core language with extra data after them */
 		if (slot == 0) {
@@ -303,7 +311,9 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 		    }
 		}
 	    }
+            start_of_line = 0;
 	}
+        if (add_space && !label_at_eol) putc(' ', out);
 	putc('\n', out);
     }
     return err;
@@ -390,7 +400,7 @@ static int add_token(unsigned int key, unsigned char *name, char type,
 		     struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE],
 		     unsigned char **last_name)
 {
-    int len, append_space, prepend_space;
+    int len;
     struct AMOS_token *e;
     unsigned char *s;
 
@@ -402,30 +412,19 @@ static int add_token(unsigned int key, unsigned char *name, char type,
 	*last_name = ++name; /* skip '!', save name */
     }
 
-    /* if type is not O, 0, 1, 2 or V, prepend a space (if not already done) */
-    prepend_space = (*name != ' ' && type != 'O' && type != '0' &&
-		      type != '1' && type != '2' && type != 'V');
-
-    /* if type is I, append a space */
-    append_space = (type == 'I');
-
-    /* measure length of name */
-    len = 0;
-    while (name[len] < 0x80) len++;
-    if (prepend_space) len++;
-    if (append_space) len++;
-    len++;
-
     /* allocate token table entry and link it into table */
-    e = malloc(sizeof(struct AMOS_token) + len);
+    for (len = 0; name[len] < 0x80; len++);
+    e = malloc(sizeof(struct AMOS_token) + len + 2);
     if (!e) return 1; /* failure, out of memory */
     e->key = key;
     e->next = table[key % AMOS_TOKEN_TABLE_SIZE];
     table[key % AMOS_TOKEN_TABLE_SIZE] = e;
 
+    /* keep type as first character */
+    e->text[0] = type;
+
     /* copy text, capitalise words */
-    s = (unsigned char *) &e->text[0];
-    if (prepend_space) *s++ = ' ';
+    s = (unsigned char *) &e->text[1];
     for (;;) {
         /* copy and capitalise first letter of word */
 	unsigned char c = *name++, c2 = c & 0x7F;
@@ -436,9 +435,16 @@ static int add_token(unsigned int key, unsigned char *name, char type,
         } while ((c = *s++ = *name++) != ' ');
     }
  done:
-    s[-1] &= 0x7F; /* remove terminating high bit from name */
-    if (append_space) *s++ = ' ';
+    /* remove terminating high bit from name */
+    s[-1] &= 0x7F;
+    /* replace any trailing space with virtual one by changing type to I */
+    if (s[-1] == ' ') {
+        s--;
+        e->text[0] = 'I';
+    }
+    /* add null terminator */
     *s++ = '\0';
+
     /*printf("$%06x: %s\n", e->key, e->text);*/
     return 0; /* success */
 }
