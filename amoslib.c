@@ -1,4 +1,5 @@
 #include "amoslib.h"
+#include <math.h>
 
 static void print_binary(FILE *out, uint32_t value) {
     char buf[33], *p = &buf[33];
@@ -7,27 +8,34 @@ static void print_binary(FILE *out, uint32_t value) {
     fprintf(out, "%%%s", p);
 }
 
-typedef union { uint32_t i; float f; } flint;
-
 static void print_float(FILE *out, uint32_t value) {
-    char buf[30], *p;
-    flint f = {.i = 0};
-    /* convert AMOS float to IEEE 754 float */
-    if (value) {
-	int m = (value >> 8) & 0x7FFFFF;
-	int e = (value & 0x7F) + 62;
-	f.i = ((e & 0xFF) << 23) | m;
-    }
-    /* print via a buffer so we can see what was produced */
-    snprintf(buf, sizeof(buf), "%G", f.f);
+    int e = value & 0x7F;
+    float f = e ? (value >> 8) * exp2f(e - 88) : 0;
+
+    /* print into a buffer so we can see what was produced */
+    char buf[30];
+    snprintf(buf, sizeof(buf), "%G", f);
     fprintf(out, "%s", buf);
+
     /* add ".0" if %G format did not include it */
-    for (p = &buf[0]; *p; p++) if (*p == '.' || *p == 'E') return;
+    for (char *p = &buf[0]; *p; p++) if (*p == '.' || *p == 'E') return;
     fprintf(out, ".0");
 }
 
 static void print_double(FILE *out, uint32_t vh, uint32_t vl) {
-    /* TODO */
+    int e = (vh >> 20) & 0x7FF;
+    double dl = e ? vl * exp2(e - 1075) : 0;
+    double dh = e ? ((vh & 0xFFFFF) | 0x100000) * exp2(e - 1043) : 0;
+
+    /* print into a buffer so we can see what was produced */
+    char buf[40];
+    snprintf(buf, sizeof(buf), "%.15g", dl + dh);
+    fprintf(out, "%s", buf);
+
+    /* add ".0" if %.15g format did not include it */
+    for (char *p = &buf[0]; *p; p++) if (*p == '.') return;
+    fprintf(out, ".0");
+
 }
 
 static int print_string(FILE *out, uint8_t *tk, char quote) {
