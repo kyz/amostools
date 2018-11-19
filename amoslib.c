@@ -207,7 +207,7 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 		 *
 		 * TkFor (0x023C), TkRpt (0x0250), TkWhl (0x0268), TkDo (0x027E),
 		 * TkIf (0x02BE), TkElse (0x02D0), TkData (0x0404) and AMOS Pro's
-		 * Else If (0x25A4)
+		 * TkElsI (0x25A4)
 		 * - 2 bytes: unknown purpose
 		 *
 		 * TkExIf (0x0290), TkExit (0x029E) and TkOn (0x0316):
@@ -225,7 +225,7 @@ int AMOS_print_source(unsigned char *src, size_t len, FILE *out,
 		 *   - flags & 0x10 -- procedure contains compiled code, not tokens
 		 * - 1 byte: part of seed for encryption
 		 *
-		 * Equ (0x2A40), Lvo (0x2A4A), Struc (0x2A54), Struct (0x2A64)
+		 * TkEqu (0x2A40), TkLVO (0x2A4A), TkStru (0x2A54), TkStruS (0x2A64)
 		 * - 4 bytes: value of the equate
 		 * - 1 byte: type of the equate (0-7)
 		 * - 1 byte: unknown purpose
