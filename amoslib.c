@@ -15,9 +15,8 @@ static void print_float(FILE *out, unsigned int value) {
     /* convert AMOS float to IEEE 754 float */
     if (value) {
 	int m = (value >> 8) & 0x7FFFFF;
-	int s = (value >> 7) & 1;
 	int e = (value & 0x7F) + 62;
-	f.i = (s << 31) | ((e & 0xFF) << 23) | m;
+	f.i = ((e & 0xFF) << 23) | m;
     }
     /* print via a buffer so we can see what was produced */
     snprintf(buf, sizeof(buf), "%G", f.f);
