@@ -293,7 +293,7 @@ int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
 		    case 0x02BE: /* TkIf */
 		    case 0x02D0: /* TkElse */
 		    case 0x0404: /* TkData */
-		    case 0x25A4: /* AMOS Pro "Else If" */
+		    case 0x25A4: /* TkElsI */
 			line += 2;
 			break;
           
