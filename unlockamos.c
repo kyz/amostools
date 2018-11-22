@@ -8,14 +8,15 @@
 /* read 32-bit big-endian word from uint8_t[] */
 #define amos_leek(a) ((((a)[0])<<24)|(((a)[1])<<16)|(((a)[2])<<8)|((a)[3]))
 
-void AMOS_decrypt_procedure(uint8_t *src) {
+void AMOS_decrypt_procedure(uint8_t *src, size_t len) {
     uint8_t *line, *next, *endline;
     uint32_t key, key2, key3, size;
 
     /* do not operate on compiled procedures */
-    if (src[10] & 0x10) return;
+    if (len < 12 || src[10] & 0x10) return;
 
     size = amos_leek(&src[4]);
+    if (len < (size + 8 + 6)) return;
     line = next = &src[src[0] * 2]; /* the line after PROCEDURE */
     endline = &src[size + 8 + 6]; /* the start of the line after END PROC */
 
@@ -56,7 +57,7 @@ int unlock_source(uint8_t *src, size_t len) {
 	    /* decrypt and remove the "is encrypted" flag */
 	    if (src[10] & 0x20) {
 		if ((size_t)(amos_leek(&src[4]) + 8 + 6) < len) {
-		    AMOS_decrypt_procedure(src);
+		    AMOS_decrypt_procedure(src, len);
 		    locked_procs_found++;
 		}
 		else {

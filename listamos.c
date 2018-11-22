@@ -29,6 +29,7 @@ void read_extension_file(char *filename, int slot) {
 	    fprintf(stderr, "%s: not an AMOS extension\n", filename);
 	}
 	else {
+            fprintf(stderr, "%s: loaded into slot %d\n", filename, slot);
 	    extensions_loaded[slot] = 1;
 	}
 	free(buf);

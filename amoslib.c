@@ -1,6 +1,7 @@
 #include "amoslib.h"
 #include <math.h>
 
+/* print a binary value, e.g. "%10010110101101" */
 static void print_binary(FILE *out, uint32_t value) {
     char buf[33], *p = &buf[33];
     *--p = '\0';
@@ -8,62 +9,53 @@ static void print_binary(FILE *out, uint32_t value) {
     fprintf(out, "%%%s", p);
 }
 
+/* print a floating point value, e.g. "9.22337E+18" or "123.0" */
 static void print_float(FILE *out, uint32_t value) {
     int e = value & 0x7F;
     float f = e ? (value >> 8) * exp2f(e - 88) : 0;
-
-    /* print into a buffer so we can see what was produced */
-    char buf[30];
+    char buf[20];
+    /* print in %G format, adding '.0' if not present */
     snprintf(buf, sizeof(buf), "%G", f);
     fprintf(out, "%s", buf);
-
-    /* add ".0" if %G format did not include it */
     for (char *p = &buf[0]; *p; p++) if (*p == '.' || *p == 'E') return;
     fprintf(out, ".0");
 }
 
+/* print a double-precision float value, e.g. "1.23456789012345e+100" */
 static void print_double(FILE *out, uint32_t vh, uint32_t vl) {
     int e = (vh >> 20) & 0x7FF;
     double dl = e ? vl * exp2(e - 1075) : 0;
     double dh = e ? ((vh & 0xFFFFF) | 0x100000) * exp2(e - 1043) : 0;
-
-    /* print into a buffer so we can see what was produced */
-    char buf[40];
+    char buf[30];
+    /* print in %.15g format, adding '.0 if not included */
     snprintf(buf, sizeof(buf), "%.15g", dl + dh);
     fprintf(out, "%s", buf);
-
-    /* add ".0" if %.15g format did not include it */
     for (char *p = &buf[0]; *p; p++) if (*p == '.') return;
     fprintf(out, ".0");
 
 }
 
+/* print a string with given quote characters, e.g. 'hello' "world" */
 static int print_string(FILE *out, uint8_t *s, char quote) {
-    int len = amos_deek(s); s += 2;
-    putc(quote, out);
-    for (int i = 0; i < len; i++) {
-        uint8_t c = *s++;
-        if (c) putc((char) c, out); else break;
-    }
-    putc(quote, out);
-    return len + (len & 1 ? 3 : 2);
+    int len = amos_deek(s);
+    char fmt[20];
+    snprintf(fmt, sizeof(fmt), "%c%%%d.%ds%c", quote, len, len, quote);
+    fprintf(out, fmt, &s[2]);
+    return len + 2 + (len & 1 ? 1 : 0);
 }
 
-static char *lookup_token(int slot, int offset,
-			  struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE])
-{
-    struct AMOS_token *e;
-    int key = (slot << 16) | offset;
-    for (e = table[key % AMOS_TOKEN_TABLE_SIZE]; e; e = e->next) {
-	if (e->key == key) return e->text;
-    }
-    return NULL;
-}
-
+/**
+ * Print AMOS source code to a file handle
+ * @param src pointer to first line of source code
+ * @param len length of source code in bytes
+ * @param out file handle to write to
+ * @param table token table filled using AMOS_parse_extension
+ * @return zero for success, non-zero if errors occurred
+ */
 int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
 		      struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE])
 {
-    uint32_t slot, token, linelen=0, inpos, i, compiled_len = 0;
+    uint32_t token, linelen=0, inpos, i, compiled_len = 0;
     uint8_t *line, *endline, add_space, start_of_line, label_at_eol;
     int err = 0;
 
@@ -94,7 +86,7 @@ int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
 	    linelen = len - (inpos - linelen);
 	}
 
-	/*printf("LINE: ");for(i=0;i<linelen;i+=2)printf("%02X%02X ",line[i],line[i+1]);puts("");*/
+	//printf("LINE: ");for(i=0;i<linelen;i+=2)printf("%02X%02X ",line[i],line[i+1]);puts("");
 
 	/* start the line with the given indent level */
 	if ((i = line[1]) > 1) {
@@ -150,8 +142,8 @@ int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
 		line += ((line[2] & 1) ? 5 : 4) + line[2];
 	    }
 	    else if (token < 0x004E || token == 0x2B6A) {
-		/* Tokens 0x0019 to 0x004D are "constant" tokens. These represent
-		 * literal numbers and strings:
+		/* Tokens 0x0019 to 0x004D (and 0x2B6A) are "constant" tokens.
+                 * They represent literal numbers and strings:
 		 *
 		 * - 0x001E = TkBin, a binary integer, e.g. %100101
 		 * - 0x0026 = TkCh1, a string with double quotes, e.g. "hello"
@@ -196,12 +188,13 @@ int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
                     print_double(out, amos_leek(line), amos_leek(line+4)); line += 8;
                     break;
 		default:
-		    fprintf(out, "ILLEGAL_CONST_%04X", token);
+		    fprintf(out, "Illegal_Constant_%04X", token);
 		    err |= 2;
 		}
 	    }
 	    else {
-		char *tok;
+		char *tok = NULL;
+                int key;
 		/* all other tokens: 0x004E to 0xFFFF
 		 *
 		 * other than the extension tokens, these are actual instructions,
@@ -252,17 +245,25 @@ int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
 		 * - 1 byte: unknown purpose
 		 */
 		if (token == 0x004E) {
-		    slot = line[0];
-		    token = amos_deek(&line[2]);
+		    key = line[0] << 16 | amos_deek(&line[2]);
 		    line += 4;
 		}
 		else {
-		    slot = 0;
+		    key = token; /* slot 0 */
 		}
 
-		if ((tok = lookup_token(slot, token, table))) {
+                /* lookup token */
+                for (struct AMOS_token *e = table[key % AMOS_TOKEN_TABLE_SIZE]; e; e = e->next)
+                {
+                    if (e->key == key) {
+                        tok = e->text;
+                        break;
+                    }
+                }
+
+		if (tok) {
                     char type = *tok++;
-                    char is_paren = (slot == 0 && token == 0x0074);
+                    char is_paren = (token == 0x0074);
                     char is_func = (type == 'O' || type == '0' || type == '1' ||
                                     type == '2' || type == 'V');
                     if (!is_func && !start_of_line) add_space = 1;
@@ -272,51 +273,50 @@ int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
 		}
 		else {
 		    /* unknown token */
-		    fprintf(out, " EXTENSION_%c_%04X ", 'A' + slot, token);
+		    fprintf(out, " Extension_%d_%04X", key >> 16, key & 0xFFFF);
+                    add_space = 1;
 		    err |= 4;
 		}
 
 
 		/* special tokens in the core language with extra data after them */
-		if (slot == 0) {
-		    switch (token) {
-		    case 0x064A: /* TkRem1 */
-		    case 0x0652: /* TkRem2 */
-			fprintf(out, "%s", &line[2]);
-			i = line[1]; line += 2 + i; if (i & 1) line++;
-			break;
+		switch (token) {
+                case 0x064A: /* TkRem1 */
+                case 0x0652: /* TkRem2 */
+                    fprintf(out, "%s", &line[2]);
+                    i = line[1]; line += 2 + i; if (i & 1) line++;
+                    break;
 
-		    case 0x023C: /* TkFor */
-		    case 0x0250: /* TkRpt */
-		    case 0x0268: /* TkWhl */
-		    case 0x027E: /* TkDo */
-		    case 0x02BE: /* TkIf */
-		    case 0x02D0: /* TkElse */
-		    case 0x0404: /* TkData */
-		    case 0x25A4: /* TkElsI */
-			line += 2;
-			break;
-          
-		    case 0x0290: /* TkExIf */
-		    case 0x029E: /* TkExit */
-		    case 0x0316: /* TkOn */
-			line += 4;
-			break;
-          
-		    case 0x0376: /* TkProc */
-			if (line[6] & 0x20) AMOS_decrypt_procedure(line-4);
-			if (line[6] & 0x10) compiled_len = amos_leek(&line[0]);
-			line += 8;
-			break;
+                case 0x023C: /* TkFor */
+                case 0x0250: /* TkRpt */
+                case 0x0268: /* TkWhl */
+                case 0x027E: /* TkDo */
+                case 0x02BE: /* TkIf */
+                case 0x02D0: /* TkElse */
+                case 0x0404: /* TkData */
+                case 0x25A4: /* TkElsI */
+                    line += 2;
+                    break;
 
-                    case 0x2A40: /* Equ */
-                    case 0x2A4A: /* Lvo */
-                    case 0x2A54: /* Struc */
-                    case 0x2A64: /* Struct */
-                        line += 6;
-                        break;
-		    }
-		}
+                case 0x0290: /* TkExIf */
+                case 0x029E: /* TkExit */
+                case 0x0316: /* TkOn */
+                    line += 4;
+                    break;
+          
+                case 0x0376: /* TkProc */
+                    if (line[6] & 0x20) AMOS_decrypt_procedure(line-4, len - (inpos-linelen));
+                    if (line[6] & 0x10) compiled_len = amos_leek(&line[0]);
+                    line += 8;
+                    break;
+
+                case 0x2A40: /* Equ */
+                case 0x2A4A: /* Lvo */
+                case 0x2A54: /* Struc */
+                case 0x2A64: /* Struct */
+                    line += 6;
+                    break;
+                }
 	    }
             start_of_line = 0;
 	}
@@ -326,14 +326,20 @@ int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
     return err;
 }
 
-void AMOS_decrypt_procedure(uint8_t *src) {
+/**
+ * Decrypts (or re-encrypts) an AMOS procedure
+ * @param src pointer to start of line with PROCEDURE token
+ * @param len maximum length of source code from that line onward
+ */
+void AMOS_decrypt_procedure(uint8_t *src, size_t len) {
     uint8_t *line, *next, *endline;
     uint32_t key, key2, key3, size;
 
     /* do not operate on compiled procedures */
-    if (src[10] & 0x10) return;
+    if (len < 12 || src[10] & 0x10) return;
 
     size = amos_leek(&src[4]);
+    if (len < (size + 8 + 6)) return;
     line = next = &src[src[0] * 2]; /* the line after PROCEDURE */
     endline = &src[size + 8 + 6]; /* the start of the line after END PROC */
 
@@ -357,14 +363,25 @@ void AMOS_decrypt_procedure(uint8_t *src) {
 }
 
 
-/* parse extension names out of an AMOS 1.3/Pro interpreter config file */
+/**
+ * Parse an AMOS 1.3 or AMOS Pro config file to get extension names
+ * @param src pointer to config file
+ * @param len length of config file
+ * @param slots extension slots, will be filled with extension names
+ * @return zero for success, non-zero if file can't be parsed
+ */
 int AMOS_parse_config(uint8_t *src, size_t len,
 		      char *slots[AMOS_EXTENSION_SLOTS])
 {
-    /* AMOSPro_Interpreter_Config format: PId1 / PIt1 */
-    if (len > 100 && amos_leek(src) == 0x50496431) {
+    /* AMOSPro_Interpreter_Config format: PId1 / PIdt */
+    if (len > 100 && (amos_leek(src) == 0x50496431 ||
+                      amos_leek(src) == 0x50496474))
+    {
+        /* items section: PIt1 / PItx */
         uint32_t idlen = amos_leek(&src[4]);
-        if (idlen < (len - 92) && amos_leek(&src[idlen + 8]) == 0x50497431) {
+        if (idlen < (len - 92) && (amos_leek(&src[idlen + 8]) == 0x50497431 ||
+                                   amos_leek(&src[idlen + 8]) == 0x50497478))
+        {
             uint8_t *p = &src[idlen + 16];
             int i;
             /* config strings 16-41 are extensions 1-25 */
@@ -403,6 +420,7 @@ int AMOS_parse_config(uint8_t *src, size_t len,
     return 1; /* failure */
 }
 
+/* add a token to the token table */
 static int add_token(uint32_t key, uint8_t *name, char type,
 		     struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE],
 		     uint8_t **last_name)
@@ -452,10 +470,19 @@ static int add_token(uint32_t key, uint8_t *name, char type,
     /* add null terminator */
     *s++ = '\0';
 
-    /*printf("$%06x: %s\n", e->key, e->text);*/
+    //printf("$%06x: %s\n", e->key, e->text);
     return 0; /* success */
 }
 
+/**
+ * Parse an AMOS 1.3 or AMOS Pro extension to get extension tokens
+ * @param src pointer to extension file
+ * @param len length of extension file
+ * @param slot to load extension into (0-25)
+ * @param start offset from token table to start parsing (use 6)
+ * @param table token table to be filled
+ * @return zero for succes, non-zero if file can't be parsed
+ */
 int AMOS_parse_extension(uint8_t *src, size_t len, int slot, int start,
 			 struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE])
 {
@@ -496,11 +523,11 @@ int AMOS_parse_extension(uint8_t *src, size_t len, int slot, int start,
     return 1; /* failure: ran out of list before end */
 }
 
-/* find extension number by scanning init code for MOVE #slot-1,D0 before RTS
- * This works on all extensions I can find, except:
- * Dump.Lib V1.1 (has an RTS just before the desired MOVEQ #n,D0 / RTS)
- * AMOSPro_TURBO_Plus.Lib V2.15 (complex startup code)
- * Intuition.Lib / AMOSPro_Intuition.Lib V1.3a (complex startup code)
+/**
+ * Parse an AMOS 1.3 or AMOS Pro extension and find its slot number
+ * @param src pointer to extension file
+ * @param len length of extension file
+ * @return slot number if can be determined, or -1 if indeterminate
  */
 int AMOS_find_slot(uint8_t *src, size_t len) {
     uint8_t *p, *end;
@@ -518,7 +545,13 @@ int AMOS_find_slot(uint8_t *src, size_t len) {
 	titleoff += 4;
     }
     if (codeoff > len || titleoff > len) return -1;
-    
+
+    /* scan init code for MOVE #slot-1,D0 before RTS.
+     * This works on all extensions I can find, except:
+     * - Dump.Lib V1.1 (has an RTS just before the desired MOVEQ #n,D0 / RTS)
+     * - AMOSPro_TURBO_Plus.Lib V2.15 (complex startup code)
+     * - Intuition.Lib / AMOSPro_Intuition.Lib V1.3a (complex startup code)
+     */
     for (p = &src[codeoff], end = &src[titleoff]; p+2 < end; p += 2) {
 	uint32_t c = amos_deek(p);
 	if (c == 0x4E75) { /* stop at first RTS */
@@ -542,6 +575,10 @@ int AMOS_find_slot(uint8_t *src, size_t len) {
     return (b != -1) ? b : (l != -1) ? l : w;
 }
 
+/**
+ * Free tokens added to token table by AMOS_parse_extension()
+ * @param table token table
+ */
 void AMOS_free_tokens(struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE]) {
     int i;
     for (i = 0; i < AMOS_TOKEN_TABLE_SIZE; i++) {
