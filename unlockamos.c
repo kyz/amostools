@@ -26,15 +26,15 @@ void AMOS_decrypt_procedure(uint8_t *src, size_t len) {
     key3 = amos_deek(&src[8]);
 
     while (line < endline) {
-	line = next; next = &line[line[0] * 2];
-	if (!line[0]) return; /* avoid infinite loop on bad data */
-	for (line += 4; line < next;) {
-	    *line++ ^= (key >> 8) & 0xFF;
-	    *line++ ^=  key       & 0xFF;
-	    key  += key2;
-	    key2 += key3;
-	    key = (key >> 1) | (key << 31); /* rotate right one bit */
-	}
+        line = next; next = &line[line[0] * 2];
+        if (!line[0]) return; /* avoid infinite loop on bad data */
+        for (line += 4; line < next;) {
+            *line++ ^= (key >> 8) & 0xFF;
+            *line++ ^=  key       & 0xFF;
+            key  += key2;
+            key2 += key3;
+            key = (key >> 1) | (key << 31); /* rotate right one bit */
+        }
     }
     src[10] ^= 0x20; /* toggle "is encrypted" bit */
 }
@@ -46,30 +46,30 @@ int unlock_source(uint8_t *src, size_t len) {
     /* go through the lines of source code */
     len = amos_leek(&src[16]);
     for (src += 20; len > 0; src += x, len -= x) {
-	x = src[0] * 2;
-	if (x > len) {
-	    printf("line length error\n");
-	    return 0;
-	}
+        x = src[0] * 2;
+        if (x > len) {
+            printf("line length error\n");
+            return 0;
+        }
 
-	/* does this a line begin with "PROCEDURE" ? */
-	if (amos_deek(&src[2]) == 0x0376) {
-	    /* decrypt and remove the "is encrypted" flag */
-	    if (src[10] & 0x20) {
-		if ((size_t)(amos_leek(&src[4]) + 8 + 6) < len) {
-		    AMOS_decrypt_procedure(src, len);
-		    locked_procs_found++;
-		}
-		else {
-		    printf("WARNING: locked procedure with bad length found\n");
-		}
-	    }
-	    /* always remove "is locked" flag */
-	    if (src[10] & 0x40) {
-		src[10] ^= 0x040;
-		locked_procs_found++;
-	    }
-	}
+        /* does this a line begin with "PROCEDURE" ? */
+        if (amos_deek(&src[2]) == 0x0376) {
+            /* decrypt and remove the "is encrypted" flag */
+            if (src[10] & 0x20) {
+                if ((size_t)(amos_leek(&src[4]) + 8 + 6) < len) {
+                    AMOS_decrypt_procedure(src, len);
+                    locked_procs_found++;
+                }
+                else {
+                    printf("WARNING: locked procedure with bad length found\n");
+                }
+            }
+            /* always remove "is locked" flag */
+            if (src[10] & 0x40) {
+                src[10] ^= 0x040;
+                locked_procs_found++;
+            }
+        }
     }
     return locked_procs_found;
 }
@@ -80,26 +80,26 @@ int main(int argc, char *argv[]) {
     size_t len;
 
     if (argc <= 1) {
-	printf("Usage: %s <file(s).amos>\n", argv[0]);
-	return 1;
+        printf("Usage: %s <file(s).amos>\n", argv[0]);
+        return 1;
     }
 
     for (argv++; (fname = *argv); argv++) {
-	if ((buf = read_file(fname, &len))) {
-	    if (!memcmp(buf, "AMOS Basic", 10)) {
-		if (unlock_source(buf, len)) {
-		    printf("%s: unlocked procedures, saving\n", fname);
-		    write_file(fname, buf, len);
-		}
-		else {
-		    printf("%s: no locked procedures\n", fname);
-		}
-	    }
-	    else {
-		printf("%s: not an AMOS Basic file\n", fname);
-	    }
-	    free(buf);
-	}
+        if ((buf = read_file(fname, &len))) {
+            if (!memcmp(buf, "AMOS Basic", 10)) {
+                if (unlock_source(buf, len)) {
+                    printf("%s: unlocked procedures, saving\n", fname);
+                    write_file(fname, buf, len);
+                }
+                else {
+                    printf("%s: no locked procedures\n", fname);
+                }
+            }
+            else {
+                printf("%s: not an AMOS Basic file\n", fname);
+            }
+            free(buf);
+        }
     }
     return 0;
 }

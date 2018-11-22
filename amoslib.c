@@ -53,7 +53,7 @@ static int print_string(FILE *out, uint8_t *s, char quote) {
  * @return zero for success, non-zero if errors occurred
  */
 int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
-		      struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE])
+                      struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE])
 {
     uint32_t token, linelen=0, inpos, i, compiled_len = 0;
     uint8_t *line, *endline, add_space, start_of_line, label_at_eol;
@@ -61,196 +61,196 @@ int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
 
     /* while we have remaining input bytes */
     for (inpos = 0; inpos < len;) {
-	/* skip compiled procedures */
-	if (compiled_len) {
-	    fprintf(out, "   ' COMPILED PROCEDURE -- can't convert this to AMOS code\n");
-	    inpos += compiled_len + 8 - linelen;
-	    if (inpos > len) break;
-	    compiled_len = 0;
-	}
+        /* skip compiled procedures */
+        if (compiled_len) {
+            fprintf(out, "   ' COMPILED PROCEDURE -- can't convert this to AMOS code\n");
+            inpos += compiled_len + 8 - linelen;
+            if (inpos > len) break;
+            compiled_len = 0;
+        }
 
-	line = &src[inpos];
-	linelen = line[0] * 2;
-	inpos += linelen;
+        line = &src[inpos];
+        linelen = line[0] * 2;
+        inpos += linelen;
 
-	/* stop if line claims to be zero length (bad data) */
-	if (linelen == 0) {
-	    err |= 1;
-	    break;
-	}
+        /* stop if line claims to be zero length (bad data) */
+        if (linelen == 0) {
+            err |= 1;
+            break;
+        }
 
-	/* if the line is said to be longer than we actually have bytes for,
-	 * mark this as an error, but continue with the bytes we have. */
-	if (inpos > len) {
-	    err |= 1;
-	    linelen = len - (inpos - linelen);
-	}
+        /* if the line is said to be longer than we actually have bytes for,
+         * mark this as an error, but continue with the bytes we have. */
+        if (inpos > len) {
+            err |= 1;
+            linelen = len - (inpos - linelen);
+        }
 
-	//printf("LINE: ");for(i=0;i<linelen;i+=2)printf("%02X%02X ",line[i],line[i+1]);puts("");
+        //printf("LINE: ");for(i=0;i<linelen;i+=2)printf("%02X%02X ",line[i],line[i+1]);puts("");
 
-	/* start the line with the given indent level */
-	if ((i = line[1]) > 1) {
-	    while (i-- > 1) putc(' ', out);
-	}
-	add_space = 0;
+        /* start the line with the given indent level */
+        if ((i = line[1]) > 1) {
+            while (i-- > 1) putc(' ', out);
+        }
+        add_space = 0;
 
-	/* decode this line */
-	endline = &line[linelen];
-	line += 2;
+        /* decode this line */
+        endline = &line[linelen];
+        line += 2;
         start_of_line = 1;
 
-	while ((line < endline) && (token = amos_deek(line))) {
-	    line += 2;
+        while ((line < endline) && (token = amos_deek(line))) {
+            line += 2;
             label_at_eol = 0;
 
-	    if (token <= 0x0018) {
-		/* Tokens 0x0000 to 0x0018 are "variable" tokens. These represent
-		 * variable, label and procedure names:
-		 * - 0x0006 = TkVar, variable reference e.g. "X" in "Print X".
-		 * - 0x000C = TkLab, label, e.g. "X:" or "190" (at the start of a line)
-		 * - 0x0012 = TkPro, procedure reference, e.g. "X" in "X[42]"
-		 * - 0x0018 = TkLGo, label reference, e.g. "X" in "Goto X"
-		 *
-		 * All these tokens have the following format:
-		 * - 2 bytes: unknown purpose
-		 * - 1 byte:  length of ASCII string for variable/label name
-		 * - 1 byte:  flags. For TkVar, TkPro and TkLGo:
-		 *            - flags & 0x01 = this is a floating point ref (eg "X#")
-		 *            - flags & 0x02 = this is a string ref (eg "X$")
-		 * - n bytes: ASCII string, with the above-given string length,
-		 *            rounded to a multiple of two, null terminated.
-		 */
+            if (token <= 0x0018) {
+                /* Tokens 0x0000 to 0x0018 are "variable" tokens. These represent
+                 * variable, label and procedure names:
+                 * - 0x0006 = TkVar, variable reference e.g. "X" in "Print X".
+                 * - 0x000C = TkLab, label, e.g. "X:" or "190" (at the start of a line)
+                 * - 0x0012 = TkPro, procedure reference, e.g. "X" in "X[42]"
+                 * - 0x0018 = TkLGo, label reference, e.g. "X" in "Goto X"
+                 *
+                 * All these tokens have the following format:
+                 * - 2 bytes: unknown purpose
+                 * - 1 byte:  length of ASCII string for variable/label name
+                 * - 1 byte:  flags. For TkVar, TkPro and TkLGo:
+                 *            - flags & 0x01 = this is a floating point ref (eg "X#")
+                 *            - flags & 0x02 = this is a string ref (eg "X$")
+                 * - n bytes: ASCII string, with the above-given string length,
+                 *            rounded to a multiple of two, null terminated.
+                 */
                 if (add_space) putc(' ', out);
-		for (i = 0; i < line[2]; i++) {
-		    uint8_t c = line[4+i];
-		    if (!c) break;
-		    if (c >= 'a' && c <= 'z') c -= ('a'-'A'); /* to uppercase */
-		    putc(c, out);
-		}
-		if (token == 0x000C) {
-		    /* if not a "line number" label, the label needs a colon */
-		    if (!(line[4] >= '0' && line[4] <= '9')) putc(':', out);
+                for (i = 0; i < line[2]; i++) {
+                    uint8_t c = line[4+i];
+                    if (!c) break;
+                    if (c >= 'a' && c <= 'z') c -= ('a'-'A'); /* to uppercase */
+                    putc(c, out);
+                }
+                if (token == 0x000C) {
+                    /* if not a "line number" label, the label needs a colon */
+                    if (!(line[4] >= '0' && line[4] <= '9')) putc(':', out);
                     add_space = 1;
                     label_at_eol = 1;
-		}
-		else {
-		    if (line[3] & 0x01) putc('#', out);
-		    else if (line[3] & 0x02) putc('$', out);
+                }
+                else {
+                    if (line[3] & 0x01) putc('#', out);
+                    else if (line[3] & 0x02) putc('$', out);
                     add_space = 0;
-		}
-		/* advance to the next token */
-		line += ((line[2] & 1) ? 5 : 4) + line[2];
-	    }
-	    else if (token < 0x004E || token == 0x2B6A) {
-		/* Tokens 0x0019 to 0x004D (and 0x2B6A) are "constant" tokens.
+                }
+                /* advance to the next token */
+                line += ((line[2] & 1) ? 5 : 4) + line[2];
+            }
+            else if (token < 0x004E || token == 0x2B6A) {
+                /* Tokens 0x0019 to 0x004D (and 0x2B6A) are "constant" tokens.
                  * They represent literal numbers and strings:
-		 *
-		 * - 0x001E = TkBin, a binary integer, e.g. %100101
-		 * - 0x0026 = TkCh1, a string with double quotes, e.g. "hello"
-		 * - 0x002E = TkCh2, a string with single quotes, e.g. 'hello'
-		 * - 0x0036 = TkHex, a hexidecimal integer, e.g. $80FAA010
-		 * - 0x003E = TkEnt, a decimal integer, e.g. 1234567890
-		 * - 0x0046 = TkFl,  a floating-point number, e.g 3.142
-		 * - 0x2B6A = TkDFl, a double-precision float, e.g. 3.1415926543
-		 *
-		 * TkBin, TkHex, TkEnt, TkFl have this format:
-		 * - 4 bytes: the value
-		 *
-		 * TkDFl has this format:
-		 * - 8 bytes: the value
-		 *
-		 * TkCh1 and TkCh2 have this format:
-		 * - 2 bytes: the length of the string
-		 * - n bytes: the string, for the above number of bytes rounded up
-		 *            to a multiple of two bytes and padded with nulls.
-		 */
+                 *
+                 * - 0x001E = TkBin, a binary integer, e.g. %100101
+                 * - 0x0026 = TkCh1, a string with double quotes, e.g. "hello"
+                 * - 0x002E = TkCh2, a string with single quotes, e.g. 'hello'
+                 * - 0x0036 = TkHex, a hexidecimal integer, e.g. $80FAA010
+                 * - 0x003E = TkEnt, a decimal integer, e.g. 1234567890
+                 * - 0x0046 = TkFl,  a floating-point number, e.g 3.142
+                 * - 0x2B6A = TkDFl, a double-precision float, e.g. 3.1415926543
+                 *
+                 * TkBin, TkHex, TkEnt, TkFl have this format:
+                 * - 4 bytes: the value
+                 *
+                 * TkDFl has this format:
+                 * - 8 bytes: the value
+                 *
+                 * TkCh1 and TkCh2 have this format:
+                 * - 2 bytes: the length of the string
+                 * - n bytes: the string, for the above number of bytes rounded up
+                 *            to a multiple of two bytes and padded with nulls.
+                 */
                 if (add_space) putc(' ', out); add_space = 0;
-		switch (token) {
-		case 0x001E: /* TkBin */
-		    print_binary(out, amos_leek(line)); line += 4;
-		    break;
-		case 0x0026: /* TkCh1 */
-		    line += print_string(out, line, '\"');
-		    break;
-		case 0x002E: /* TkCh2 */
-		    line += print_string(out, line, '\'');
-		    break;
-		case 0x0036: /* TkHex */
-		    fprintf(out, "$%X", amos_leek(line)); line += 4;
-		    break;
-		case 0x003E: /* TkEnt */
-		    fprintf(out, "%d", (int) amos_leek(line)); line += 4;
-		    break;
-		case 0x0046: /* TkFl */
-		    print_float(out, amos_leek(line)); line += 4;
-		    break;
+                switch (token) {
+                case 0x001E: /* TkBin */
+                    print_binary(out, amos_leek(line)); line += 4;
+                    break;
+                case 0x0026: /* TkCh1 */
+                    line += print_string(out, line, '\"');
+                    break;
+                case 0x002E: /* TkCh2 */
+                    line += print_string(out, line, '\'');
+                    break;
+                case 0x0036: /* TkHex */
+                    fprintf(out, "$%X", amos_leek(line)); line += 4;
+                    break;
+                case 0x003E: /* TkEnt */
+                    fprintf(out, "%d", (int) amos_leek(line)); line += 4;
+                    break;
+                case 0x0046: /* TkFl */
+                    print_float(out, amos_leek(line)); line += 4;
+                    break;
                 case 0x2B6A:
                     print_double(out, amos_leek(line), amos_leek(line+4)); line += 8;
                     break;
-		default:
-		    fprintf(out, "Illegal_Constant_%04X", token);
-		    err |= 2;
-		}
-	    }
-	    else {
-		char *tok = NULL;
+                default:
+                    fprintf(out, "Illegal_Constant_%04X", token);
+                    err |= 2;
+                }
+            }
+            else {
+                char *tok = NULL;
                 int key;
-		/* all other tokens: 0x004E to 0xFFFF
-		 *
-		 * other than the extension tokens, these are actual instructions,
-		 * functions or system variables which reside in AMOS's token table.
-		 * The offset given leads to the handlers for these instructions,
-		 * as well as their name and what would be correct parameters.
-		 *
-		 * AMOS allows "extensions" to the language. They have a token table
-		 * just like AMOS, each extension has its own table.
-		 *
-		 * The extension token is token 0x004E and has this format:
-		 * - 1 byte:  extension number [1-25]
-		 * - 1 byte:  unused
-		 * - 2 bytes: offset into extension's token table
-		 *
-		 * Other than this, some tokens in the core language have a special
-		 * format. They are:
-		 *
-		 * TkRem1 (0x064A) and TkRem2 (0x0652):
-		 * - 1 byte:  unused
-		 * - 1 byte:  length of the remark
-		 * - n bytes: the remark -- ASCII text, null terminated,
-		 *            padded to a multiple of two bytes.
-		 *
-		 * TkFor (0x023C), TkRpt (0x0250), TkWhl (0x0268), TkDo (0x027E),
-		 * TkIf (0x02BE), TkElse (0x02D0), TkData (0x0404) and AMOS Pro's
-		 * TkElsI (0x25A4)
-		 * - 2 bytes: unknown purpose
-		 *
-		 * TkExIf (0x0290), TkExit (0x029E) and TkOn (0x0316):
-		 * - 4 bytes: unknown purpose
-		 *
-		 * TkProc (0x0376)
-		 * - 4 bytes: number of bytes to corresponding ENDPROC line
-		 *            (start of line + 8 + above = start of ENDPROC line)
-		 *            (start of line + 8 + 6 + above = line _after_ ENDPROC)
-		 * - 2 bytes: part of seed for encryption
-		 * - 1 byte: flags:
-		 *   - flags & 0x80 -- procedure is folded
-		 *   - flags & 0x40 -- procedure is locked and should not be unfolded
-		 *   - flags & 0x20 -- procedure is currently encrypted
-		 *   - flags & 0x10 -- procedure contains compiled code, not tokens
-		 * - 1 byte: part of seed for encryption
-		 *
-		 * TkEqu (0x2A40), TkLVO (0x2A4A), TkStru (0x2A54), TkStruS (0x2A64)
-		 * - 4 bytes: value of the equate
-		 * - 1 byte: type of the equate (0-7)
-		 * - 1 byte: unknown purpose
-		 */
-		if (token == 0x004E) {
-		    key = line[0] << 16 | amos_deek(&line[2]);
-		    line += 4;
-		}
-		else {
-		    key = token; /* slot 0 */
-		}
+                /* all other tokens: 0x004E to 0xFFFF
+                 *
+                 * other than the extension tokens, these are actual instructions,
+                 * functions or system variables which reside in AMOS's token table.
+                 * The offset given leads to the handlers for these instructions,
+                 * as well as their name and what would be correct parameters.
+                 *
+                 * AMOS allows "extensions" to the language. They have a token table
+                 * just like AMOS, each extension has its own table.
+                 *
+                 * The extension token is token 0x004E and has this format:
+                 * - 1 byte:  extension number [1-25]
+                 * - 1 byte:  unused
+                 * - 2 bytes: offset into extension's token table
+                 *
+                 * Other than this, some tokens in the core language have a special
+                 * format. They are:
+                 *
+                 * TkRem1 (0x064A) and TkRem2 (0x0652):
+                 * - 1 byte:  unused
+                 * - 1 byte:  length of the remark
+                 * - n bytes: the remark -- ASCII text, null terminated,
+                 *            padded to a multiple of two bytes.
+                 *
+                 * TkFor (0x023C), TkRpt (0x0250), TkWhl (0x0268), TkDo (0x027E),
+                 * TkIf (0x02BE), TkElse (0x02D0), TkData (0x0404) and AMOS Pro's
+                 * TkElsI (0x25A4)
+                 * - 2 bytes: unknown purpose
+                 *
+                 * TkExIf (0x0290), TkExit (0x029E) and TkOn (0x0316):
+                 * - 4 bytes: unknown purpose
+                 *
+                 * TkProc (0x0376)
+                 * - 4 bytes: number of bytes to corresponding ENDPROC line
+                 *            (start of line + 8 + above = start of ENDPROC line)
+                 *            (start of line + 8 + 6 + above = line _after_ ENDPROC)
+                 * - 2 bytes: part of seed for encryption
+                 * - 1 byte: flags:
+                 *   - flags & 0x80 -- procedure is folded
+                 *   - flags & 0x40 -- procedure is locked and should not be unfolded
+                 *   - flags & 0x20 -- procedure is currently encrypted
+                 *   - flags & 0x10 -- procedure contains compiled code, not tokens
+                 * - 1 byte: part of seed for encryption
+                 *
+                 * TkEqu (0x2A40), TkLVO (0x2A4A), TkStru (0x2A54), TkStruS (0x2A64)
+                 * - 4 bytes: value of the equate
+                 * - 1 byte: type of the equate (0-7)
+                 * - 1 byte: unknown purpose
+                 */
+                if (token == 0x004E) {
+                    key = line[0] << 16 | amos_deek(&line[2]);
+                    line += 4;
+                }
+                else {
+                    key = token; /* slot 0 */
+                }
 
                 /* lookup token */
                 for (struct AMOS_token *e = table[key % AMOS_TOKEN_TABLE_SIZE]; e; e = e->next)
@@ -261,7 +261,7 @@ int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
                     }
                 }
 
-		if (tok) {
+                if (tok) {
                     char type = *tok++;
                     char is_paren = (token == 0x0074);
                     char is_func = (type == 'O' || type == '0' || type == '1' ||
@@ -270,17 +270,17 @@ int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
                     if (!is_paren && add_space && *tok != ' ') putc(' ', out);
                     fprintf(out, "%s", tok);
                     add_space = (type == 'I');
-		}
-		else {
-		    /* unknown token */
-		    fprintf(out, " Extension_%d_%04X", key >> 16, key & 0xFFFF);
+                }
+                else {
+                    /* unknown token */
+                    fprintf(out, " Extension_%d_%04X", key >> 16, key & 0xFFFF);
                     add_space = 1;
-		    err |= 4;
-		}
+                    err |= 4;
+                }
 
 
-		/* special tokens in the core language with extra data after them */
-		switch (token) {
+                /* special tokens in the core language with extra data after them */
+                switch (token) {
                 case 0x064A: /* TkRem1 */
                 case 0x0652: /* TkRem2 */
                     fprintf(out, "%s", &line[2]);
@@ -303,7 +303,7 @@ int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
                 case 0x0316: /* TkOn */
                     line += 4;
                     break;
-          
+
                 case 0x0376: /* TkProc */
                     if (line[6] & 0x20) AMOS_decrypt_procedure(line-4, len - (inpos-linelen));
                     if (line[6] & 0x10) compiled_len = amos_leek(&line[0]);
@@ -317,11 +317,11 @@ int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
                     line += 6;
                     break;
                 }
-	    }
+            }
             start_of_line = 0;
-	}
+        }
         if (add_space && !label_at_eol) putc(' ', out);
-	putc('\n', out);
+        putc('\n', out);
     }
     return err;
 }
@@ -350,7 +350,7 @@ void AMOS_decrypt_procedure(uint8_t *src, size_t len) {
 
     while (line < endline) {
         line = next; next = &line[line[0] * 2];
-	if (!line[0]) return; /* avoid infinite loop on bad data */
+        if (!line[0]) return; /* avoid infinite loop on bad data */
         for (line += 4; line < next;) {
             *line++ ^= (key >> 8) & 0xFF;
             *line++ ^=  key       & 0xFF;
@@ -371,7 +371,7 @@ void AMOS_decrypt_procedure(uint8_t *src, size_t len) {
  * @return zero for success, non-zero if file can't be parsed
  */
 int AMOS_parse_config(uint8_t *src, size_t len,
-		      char *slots[AMOS_EXTENSION_SLOTS])
+                      char *slots[AMOS_EXTENSION_SLOTS])
 {
     /* AMOSPro_Interpreter_Config format: PId1 / PIdt */
     if (len > 100 && (amos_leek(src) == 0x50496431 ||
@@ -388,7 +388,7 @@ int AMOS_parse_config(uint8_t *src, size_t len,
             for (i = 1; i < (16+AMOS_EXTENSION_SLOTS); i++) {
                 if (i >= 16) slots[i - 16] = (char *) &p[2];
                 p += p[1] + 2;
-		if ((p - src) > (int) len) return 1;
+                if ((p - src) > (int) len) return 1;
             }
             return 0; /* success */
         }
@@ -396,34 +396,33 @@ int AMOS_parse_config(uint8_t *src, size_t len,
 
     /* AMOS1_3_Pal.env, etc. format: Amiga code hunk */
     if (len > 300 && amos_leek(src) == 0x3f3 && amos_leek(&src[24]) == 0x3e9) {
-	uint32_t dta = amos_leek(&src[32]);
+        uint32_t dta = amos_leek(&src[32]);
         /* look up config entry 66 */
         uint32_t offset = amos_deek(&src[36 + 65 * 4]) + 36 - dta;
-	uint32_t flags  = amos_deek(&src[36 + 65 * 4 + 2]);
-	/* entry must be list of strings */
+        uint32_t flags  = amos_deek(&src[36 + 65 * 4 + 2]);
+        /* entry must be list of strings */
         if (flags & 0x8000 && offset < len) {
-	    uint8_t *s = &src[offset], *end = &src[len];
-	    int i;
-	    for (i = 0; i < AMOS_EXTENSION_SLOTS; i++) {
-		if (s >= end) return 1;
-		if (*s == 0xFF) break; /* end of list */
-		slots[i] = (char *) s;
-		while (*s++ && s < end); /* skip string */
-	    }
-	    for (; i < AMOS_EXTENSION_SLOTS; i++) {
-		slots[i] = NULL;
-	    }
-	    return 0; /* success */
+            uint8_t *s = &src[offset], *end = &src[len];
+            int i;
+            for (i = 0; i < AMOS_EXTENSION_SLOTS; i++) {
+                if (s >= end) return 1;
+                if (*s == 0xFF) break; /* end of list */
+                slots[i] = (char *) s;
+                while (*s++ && s < end); /* skip string */
+            }
+            for (; i < AMOS_EXTENSION_SLOTS; i++) {
+                slots[i] = NULL;
+            }
+            return 0; /* success */
         }
     }
-    
     return 1; /* failure */
 }
 
 /* add a token to the token table */
 static int add_token(uint32_t key, uint8_t *name, char type,
-		     struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE],
-		     uint8_t **last_name)
+                     struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE],
+                     uint8_t **last_name)
 {
     int len;
     struct AMOS_token *e;
@@ -431,10 +430,10 @@ static int add_token(uint32_t key, uint8_t *name, char type,
 
     /* if name begins with '!', it can be recalled with blank name */
     if (*name == 0x80) {
-	if (!(name = *last_name)) return 0; /* skip this token */
+        if (!(name = *last_name)) return 0; /* skip this token */
     }
     else if (*name == '!') {
-	*last_name = ++name; /* skip '!', save name */
+        *last_name = ++name; /* skip '!', save name */
     }
 
     /* allocate token table entry and link it into table */
@@ -452,7 +451,7 @@ static int add_token(uint32_t key, uint8_t *name, char type,
     s = (uint8_t *) &e->text[1];
     for (;;) {
         /* copy and capitalise first letter of word */
-	uint8_t c = *name++, c2 = c & 0x7F;
+        uint8_t c = *name++, c2 = c & 0x7F;
         *s++ = (c2 >= 'a' && c2 <= 'z') ? c2 - ('a'-'A') : c2;
         /* copy rest of word */
         do {
@@ -484,14 +483,14 @@ static int add_token(uint32_t key, uint8_t *name, char type,
  * @return zero for succes, non-zero if file can't be parsed
  */
 int AMOS_parse_extension(uint8_t *src, size_t len, int slot, int start,
-			 struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE])
+                         struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE])
 {
     uint8_t *p, *end = &src[len], *pname, *ptype, *last_name = NULL;
     uint32_t tkoff;
 
     /* Extension format is an Amiga hunk file with a single code hunk */
     if (len < 54 || amos_leek(src) != 0x3f3 || amos_leek(&src[24]) != 0x3e9) {
-	return 1;
+        return 1;
     }
 
     /* the first bytes in the code hunk are a header: 4 longwords and 1 word
@@ -509,17 +508,17 @@ int AMOS_parse_extension(uint8_t *src, size_t len, int slot, int start,
      * 0/1 byte: realign to word boundary if needed
      */
     for (p = &src[tkoff + start]; (p+2) < end;) {
-	/* unique key is slot and 16-bit offset within table */
-	uint32_t key = (slot << 16) | (((p - src) - tkoff) & 0xFFFF);
-	if (!amos_deek(p)) return 0; /* success: reached end of list */
-	p += 4;
-	pname = p; while (p < end && *p < 0x80) p++; p++;
-	ptype = p; while (p < end && *p < 0xFD) p++; p++;
-	if ((p - src) & 1) p++; /* re-align to word boundary */
+        /* unique key is slot and 16-bit offset within table */
+        uint32_t key = (slot << 16) | (((p - src) - tkoff) & 0xFFFF);
+        if (!amos_deek(p)) return 0; /* success: reached end of list */
+        p += 4;
+        pname = p; while (p < end && *p < 0x80) p++; p++;
+        ptype = p; while (p < end && *p < 0xFD) p++; p++;
+        if ((p - src) & 1) p++; /* re-align to word boundary */
 
-	/* add entry to token table */
-	if (add_token(key, pname, *ptype, table, &last_name)) return 1;
-    }	
+        /* add entry to token table */
+        if (add_token(key, pname, *ptype, table, &last_name)) return 1;
+    }
     return 1; /* failure: ran out of list before end */
 }
 
@@ -540,9 +539,9 @@ int AMOS_find_slot(uint8_t *src, size_t len) {
     codeoff  = amos_leek(&src[36]) + tkoff;
     titleoff = amos_leek(&src[40]) + codeoff;
     if (amos_leek(&src[32 + 18]) == 0x41503230) {
-	tkoff += 4;
-	codeoff += 4;
-	titleoff += 4;
+        tkoff += 4;
+        codeoff += 4;
+        titleoff += 4;
     }
     if (codeoff > len || titleoff > len) return -1;
 
@@ -553,21 +552,21 @@ int AMOS_find_slot(uint8_t *src, size_t len) {
      * - Intuition.Lib / AMOSPro_Intuition.Lib V1.3a (complex startup code)
      */
     for (p = &src[codeoff], end = &src[titleoff]; p+2 < end; p += 2) {
-	uint32_t c = amos_deek(p);
-	if (c == 0x4E75) { /* stop at first RTS */
-	    break;
-	}
-	else if (c >= 0x7000 && c <= (0x7000 | AMOS_EXTENSION_SLOTS)) {
-	    b = (c & 0xFF) + 1; /* MOVEQ #slot-1,D0 */
-	}
-	else if (c == 0x303C && p+4 < end) {
-	    c = amos_deek(&p[2]); /* MOVE.W #slot-1,D0 */
-	    if (c <= AMOS_EXTENSION_SLOTS) w = c + 1;
-	}
-	else if (c == 0x203C && p+6 < end) {
-	    c = amos_leek(&p[2]); /* MOVE.L #slot-1,D0 */
-	    if (c <= AMOS_EXTENSION_SLOTS) l = c + 1;
-	}
+        uint32_t c = amos_deek(p);
+        if (c == 0x4E75) { /* stop at first RTS */
+            break;
+        }
+        else if (c >= 0x7000 && c <= (0x7000 | AMOS_EXTENSION_SLOTS)) {
+            b = (c & 0xFF) + 1; /* MOVEQ #slot-1,D0 */
+        }
+        else if (c == 0x303C && p+4 < end) {
+            c = amos_deek(&p[2]); /* MOVE.W #slot-1,D0 */
+            if (c <= AMOS_EXTENSION_SLOTS) w = c + 1;
+        }
+        else if (c == 0x203C && p+6 < end) {
+            c = amos_leek(&p[2]); /* MOVE.L #slot-1,D0 */
+            if (c <= AMOS_EXTENSION_SLOTS) l = c + 1;
+        }
     }
 
     /* Prefer MOVEQ (most extensions) over MOVE.L (needed only for TOME
@@ -582,10 +581,10 @@ int AMOS_find_slot(uint8_t *src, size_t len) {
 void AMOS_free_tokens(struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE]) {
     int i;
     for (i = 0; i < AMOS_TOKEN_TABLE_SIZE; i++) {
-	struct AMOS_token *e, *next;
-	for (e = table[i]; e; e = next) {
-	    next = e->next;
-	    free(e);
-	}
+        struct AMOS_token *e, *next;
+        for (e = table[i]; e; e = next) {
+            next = e->next;
+            free(e);
+        }
     }
 }

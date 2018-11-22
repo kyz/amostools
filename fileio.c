@@ -38,11 +38,11 @@ int write_file(char *name, void *mem, size_t length) {
     FILE *fh;
     int ok = 0;
     if ((fh = fopen(name, "wb"))) {
-	ok = (fwrite(mem, 1, length, fh) == length);
-	fclose(fh);
+        ok = (fwrite(mem, 1, length, fh) == length);
+        fclose(fh);
     }
     if (!ok) {
-	perror(name);
+        perror(name);
     }
     return ok;
 }

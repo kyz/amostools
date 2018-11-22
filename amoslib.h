@@ -26,7 +26,7 @@ struct AMOS_token {
  * @return zero for success, non-zero if errors occurred
  */
 int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
-		      struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE]);
+                      struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE]);
 
 /**
  * Decrypts (or re-encrypts) an AMOS procedure
@@ -43,7 +43,7 @@ void AMOS_decrypt_procedure(uint8_t *src, size_t len);
  * @return zero for success, non-zero if file can't be parsed
  */
 int AMOS_parse_config(uint8_t *src, size_t len,
-		      char *slots[AMOS_EXTENSION_SLOTS]);
+                      char *slots[AMOS_EXTENSION_SLOTS]);
 
 /**
  * Parse an AMOS 1.3 or AMOS Pro extension to get extension tokens
@@ -55,7 +55,7 @@ int AMOS_parse_config(uint8_t *src, size_t len,
  * @return zero for succes, non-zero if file can't be parsed
  */
 int AMOS_parse_extension(uint8_t *src, size_t len, int slot, int start,
-			 struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE]);
+                         struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE]);
 
 /**
  * Parse an AMOS 1.3 or AMOS Pro extension and find its slot number
