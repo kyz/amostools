@@ -253,8 +253,8 @@ int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
                 }
 
                 /* lookup token */
-                for (struct AMOS_token *e = table[key % AMOS_TOKEN_TABLE_SIZE]; e; e = e->next)
-                {
+                int tidx = (key >> 1) % AMOS_TOKEN_TABLE_SIZE;
+                for (struct AMOS_token *e = table[tidx]; e; e = e->next) {
                     if (e->key == key) {
                         tok = e->text;
                         break;
@@ -424,7 +424,7 @@ static int add_token(uint32_t key, uint8_t *name, char type,
                      struct AMOS_token *table[AMOS_TOKEN_TABLE_SIZE],
                      uint8_t **last_name)
 {
-    int len;
+    int len, tidx;
     struct AMOS_token *e;
     uint8_t *s;
 
@@ -440,9 +440,10 @@ static int add_token(uint32_t key, uint8_t *name, char type,
     for (len = 0; name[len] < 0x80; len++);
     e = malloc(sizeof(struct AMOS_token) + len + 2);
     if (!e) return 1; /* failure, out of memory */
+    tidx = (key >> 1) % AMOS_TOKEN_TABLE_SIZE;
     e->key = key;
-    e->next = table[key % AMOS_TOKEN_TABLE_SIZE];
-    table[key % AMOS_TOKEN_TABLE_SIZE] = e;
+    e->next = table[tidx];
+    table[tidx] = e;
 
     /* keep type as first character */
     e->text[0] = type;
@@ -549,7 +550,7 @@ int AMOS_find_slot(uint8_t *src, size_t len) {
      * This works on all extensions I can find, except:
      * - Dump.Lib V1.1 (has an RTS just before the desired MOVEQ #n,D0 / RTS)
      * - AMOSPro_TURBO_Plus.Lib V2.15 (complex startup code)
-     * - Intuition.Lib / AMOSPro_Intuition.Lib V1.3a (complex startup code)
+     * - Intuition.Lib / AMOSPro_Intuition.Lib V1.3/a/b (complex startup code)
      */
     for (p = &src[codeoff], end = &src[titleoff]; p+2 < end; p += 2) {
         uint32_t c = amos_deek(p);

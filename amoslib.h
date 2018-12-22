@@ -9,7 +9,10 @@
 #define amos_leek(a) ((((a)[0])<<24)|(((a)[1])<<16)|(((a)[2])<<8)|((a)[3]))
 
 #define AMOS_EXTENSION_SLOTS (25)
-#define AMOS_TOKEN_TABLE_SIZE (16267)  /* should be prime */
+
+/* should be prime. 8297 is the first number where the core tokens
+ * and default extension tokens all hash to a unique table index */
+#define AMOS_TOKEN_TABLE_SIZE (8297)
 
 struct AMOS_token {
   struct AMOS_token *next;
