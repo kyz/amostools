@@ -39,6 +39,7 @@ They should be used with the `listamos -e` option.
 |`AMOSPro_EasyLife.Lib-V1.44`                           |Aminet CD 4: dev/amos/easylife14b.lha|
 |`Ercole.Lib-V1.6`, `AMOSPro_Ercole.Lib-V1.7`           |[Aminet](http://aminet.net/package/dev/amos/Ercole_ext)|
 |`AMOSPro_Explode.Lib-V2.01`                            |[Author's website](https://testaware.wordpress.com/amiga/)|
+|`FileID.Lib-V1.0`                                      |[Aminet](http://aminet.net/package/dev/amos/fileidex)|
 |`AMOSPro_First.Lib-V0.10.1`                            |[Aminet](http://aminet.net/package/dev/amos/FirstExt)|
 |`AMOSPro_Game.Lib-V0.9`                                |[Ultimate Amiga](https://www.ultimateamiga.co.uk/index.php?action=tpmod;dl=item364)|
 |`AMOSPro_GameSupport.Lib-V1.2`                         |[Aminet](http://aminet.net/package/dev/amos/GameSupport)|
