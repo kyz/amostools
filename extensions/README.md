@@ -64,6 +64,7 @@ They should be used with the `listamos -e` option.
 |`LSerial.Lib-V2.1`                                     |[AMOS PD #600](http://cd.textfiles.com/amospd/576-600/APD600/ldos_demo/)|
 |`AMOSPro_Make.Lib-V1.2`                                |[Ultimate Amiga](http://www.aliensrcooluk.com/public/Amiga/AMOS/Make_1.2.LHA)|
 |`AMOSPro_Make.Lib-V1.30`                               |[Aminet](http://aminet.net/package/dev/amos/intuiextend16) (bundled with IntuiExtend)|
+|`MAXSDoorHandler.Lib-V0.20`                            |[Aminet](http://aminet.net/package/comm/bbs/ArisDoors4MAXs)
 |`MED.Lib-V7.1`                                         |[Aminet](http://aminet.net/package/dev/amos/medext71)|
 |`AMOSPro_Misc.Lib-V1.0`                                |[Aminet](http://aminet.net/package/dev/amos/MiscExt)|
 |`Music.Lib-V3.0DEMO`, `AMOSPro_Music.Lib-V3.0DEMO`     |[Ultimate Amiga](http://www.aliensrcooluk.com/public/Amiga/AMOS/EME_3.0_DEMO.LHA)|
