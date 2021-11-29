@@ -131,6 +131,6 @@ sub save_as_c {
     die "$file: $!\n" unless open my $fh, '>', $file;
     my $hex = join '', map { sprintf '0x%02X,', $_ } unpack 'C*', $data;
     $hex =~ s/(0x..,){12}/$&\n    /g;
-    print $fh "unsigned char $name [] = {\n    $hex\n};";
+    print $fh "unsigned char $name [] = {\n    $hex\n};\n";
     close($fh);
 }
