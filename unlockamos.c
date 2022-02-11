@@ -80,6 +80,7 @@ int main(int argc, char *argv[]) {
     size_t len;
 
     if (argc <= 1) {
+	printf("Unlock \"locked\" procedures in AMOS source code.\n");
         printf("Usage: %s <file(s).amos>\n", argv[0]);
         return 1;
     }
