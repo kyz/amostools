@@ -184,7 +184,7 @@ int main(int argc, char *argv[]) {
     int i;
 
     if (argc < 2) {
-	printf("List AMOS source code as plain text.\n");
+        printf("List AMOS source code as plain text.\n");
         printf("Usage: %s [options] <Filename.AMOS>\n", argv[0]);
         printf("Options:\n"
                "  -e extension     use this extension in its default slot\n"
