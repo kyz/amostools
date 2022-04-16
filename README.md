@@ -35,7 +35,7 @@ List AMOS programs that use 3rd-party extensions:
 List AMOS programs using the extensions configured in your own AMOS setup:
 
     $ listamos -c myamos/AMOS1_3_Pal.Env -d myamos/AMOS_System source.amos
-    $ listamos -c myamos/AMOS1_3_Pal.Env -d myamos/AMOS_System source.amos
+    $ listamos -c myamos/AMOS1_3_Ntsc.Env -d myamos/AMOS_System source.amos
     $ listamos -c myamos/s/AMOSPro_Interpreter_Config -d myamos/APSystem source.amos
 
 Unlock AMOS programs with locked procedures:
