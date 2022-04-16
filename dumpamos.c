@@ -533,7 +533,10 @@ void amos_file(char *fname, uint8_t *src, size_t len) {
 
 int main(int argc, char *argv[]) {
     if (argc <= 1) {
+	printf("Extract the contents of AMOS source code and memory banks.\n");
         printf("Usage: %s [-p] <file.AMOS, file.abk, file.abs, ...>\n", argv[0]);
+        printf("Options:\n"
+               "  -p     Prefix removal\n");
         return 1;
     }
 

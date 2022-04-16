@@ -164,7 +164,7 @@ int AMOS_print_source(uint8_t *src, size_t len, FILE *out,
                  * - n bytes: the string, for the above number of bytes rounded up
                  *            to a multiple of two bytes and padded with nulls.
                  */
-                if (add_space) putc(' ', out); add_space = 0;
+                if (add_space){ putc(' ', out); add_space = 0; }
                 switch (token) {
                 case 0x001E: /* TkBin */
                     print_binary(out, amos_leek(line)); line += 4;
