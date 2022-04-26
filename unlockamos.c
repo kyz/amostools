@@ -31,8 +31,8 @@ void AMOS_decrypt_procedure(uint8_t *src, size_t len) {
         for (line += 4; line < next;) {
             *line++ ^= (key >> 8) & 0xFF;
             *line++ ^=  key       & 0xFF;
-            key  += key2;
-            key2 += key3;
+            key = (key & 0xFFFF0000) | ((key + key2) & 0xFFFF);
+            key2 = (key2 + key3) & 0xFFFF;
             key = (key >> 1) | (key << 31); /* rotate right one bit */
         }
     }
