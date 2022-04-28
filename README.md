@@ -4,8 +4,7 @@ amostools - tools to work with AMOS programs
 * listamos: list AMOS source code as plain text
 * unlockamos: unlock "locked" procedures in AMOS source code
 
-Usage
-=====
+## Usage
 
 Extract banks attached to source code:
 
@@ -40,10 +39,10 @@ List AMOS programs using the extensions configured in your own AMOS setup:
 
 Unlock AMOS programs with locked procedures:
 
-    $ unlockamos Fold.Acc *.AMOS
+    $ unlockamos Fold.Acc
+    $ unlockamos *.AMOS
 
-About Extensions
-================
+## About Extensions
 
 AMOS supports [extensions](https://www.exotica.org.uk/wiki/AMOS_extensions) to its core language.
 
@@ -61,8 +60,18 @@ extension, and it needs to be loaded in the correct slot.
 convenience, the `extensions/` directory contains as many extensions
 as I can find.
 
-Further resources
-=================
+## Support for other languages
+
+`listamos` prints source code in the Amiga's native ISO-8859-1 format.
+Most AMOS programs are plain ASCII text, but if they have accented
+characters they may not render properly on your screen.
+
+You can either import AMOS code into your editor in ISO-8859-1 format,
+or you use a tool like `iconv` to convert to another format:
+
+    $ listamos source.amos | iconv -f iso-8859-1 -t utf8 > amosprog.txt
+
+## Further resources
 
 * [AMOS File Formats](https://www.exotica.org.uk/wiki/AMOS_file_formats)
 * [AMOS Extensions](https://www.exotica.org.uk/wiki/AMOS_extensions)
